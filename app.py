@@ -20,16 +20,48 @@ archivo "inventario.db" (por ejemplo, al mover la carpeta completa a otra
 computadora), tus datos se mantienen intactos.
 """
 
-import os
-import sqlite3
-import time
+#import os
+#import sqlite3
+#import time
 
+#from flask import Flask, g, jsonify, render_template, request
+
+#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+#DB_PATH = os.path.join(BASE_DIR, "inventario.db")
+
+#app = Flask(__name__)
+
+import os
+import time
 from flask import Flask, g, jsonify, render_template, request
 
+# Intentamos importar psycopg2 para PostgreSQL en producción
+try:
+    import psycopg2
+    import psycopg2.extras
+except ImportError:
+    psycopg2 = None
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "inventario.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 app = Flask(__name__)
+
+def get_db():
+    if DATABASE_URL:
+        # Conexión a PostgreSQL en Render
+        if DATABASE_URL.startswith("postgres://"):
+            url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        else:
+            url = DATABASE_URL
+        conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.DictCursor)
+        return conn
+    else:
+        # Conexión local a SQLite
+        DB_PATH = os.path.join(BASE_DIR, "inventario.db")
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 # Columnas que el frontend envía y espera recibir de vuelta.
 FIELDS = [
