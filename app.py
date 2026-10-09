@@ -1,36 +1,3 @@
-"""
-Inventario de televisores — backend
-------------------------------------
-Framework: Flask (gratuito, open source)
-Base de datos: SQLite — viene incluida en Python, no requiere instalar nada
-                aparte ni crear ninguna cuenta en la nube. Los datos se
-                guardan en el archivo "inventario.db" que se crea solo, en
-                esta misma carpeta, la primera vez que arrancas la app.
-
-Cómo correrlo:
-    1. pip install -r requirements.txt
-    2. python app.py
-
-Luego abre http://localhost:5000 en el navegador (o http://TU_IP_LOCAL:5000
-desde otro celular en la misma red Wi-Fi).
-
-Independencia: la app funciona sola, sin internet y sin configurar nada —
-no hay contraseñas ni cadenas de conexión que copiar. Mientras conserves el
-archivo "inventario.db" (por ejemplo, al mover la carpeta completa a otra
-computadora), tus datos se mantienen intactos.
-"""
-
-import os
-import sqlite3
-import time
-
-from flask import Flask, g, jsonify, render_template, request
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "inventario.db")
-
-app = Flask(__name__)
-
 import os
 import time
 from flask import Flask, g, jsonify, render_template, request
@@ -42,28 +9,75 @@ try:
 except ImportError:
     psycopg2 = None
 
+import sqlite3
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 app = Flask(__name__)
 
 def get_db():
-    if DATABASE_URL:
-        # Conexión a PostgreSQL en Render
-        if DATABASE_URL.startswith("postgres://"):
-            url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    """Abre o reutiliza la conexión a la base de datos (PostgreSQL en Render o SQLite local)."""
+    if "db" not in g:
+        if DATABASE_URL:
+            url = DATABASE_URL.replace("postgres://", "postgresql://", 1) if DATABASE_URL.startswith("postgres://") else DATABASE_URL
+            g.db = psycopg2.connect(url, cursor_factory=psycopg2.extras.DictCursor)
         else:
-            url = DATABASE_URL
-        conn = psycopg2.connect(url, cursor_factory=psycopg2.extras.DictCursor)
-        return conn
-    else:
-        # Conexión local a SQLite
-        DB_PATH = os.path.join(BASE_DIR, "inventario.db")
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        return conn
+            DB_PATH = os.path.join(BASE_DIR, "inventario.db")
+            g.db = sqlite3.connect(DB_PATH)
+            g.db.row_factory = sqlite3.Row
+    return g.db
 
-# Columnas que el frontend envía y espera recibir de vuelta.
+@app.teardown_appcontext
+def close_db(exception=None):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    """Crea la tabla adaptada al motor de base de datos en uso."""
+    conn = get_db()
+    cursor = conn.cursor()
+    if DATABASE_URL:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tvs (
+                id            SERIAL PRIMARY KEY,
+                room          TEXT NOT NULL,
+                ubicacion     TEXT,
+                marca         TEXT,
+                modelo        TEXT NOT NULL,
+                serial        TEXT NOT NULL,
+                perifericos   TEXT,
+                instalacion   TEXT,
+                createdAt     BIGINT NOT NULL
+            )
+            """
+        )
+    else:
+        DB_PATH = os.path.join(BASE_DIR, "inventario.db")
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tvs (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                room          TEXT NOT NULL,
+                ubicacion     TEXT,
+                marca         TEXT,
+                modelo        TEXT NOT NULL,
+                serial        TEXT NOT NULL,
+                perifericos   TEXT,
+                instalacion   TEXT,
+                createdAt     INTEGER NOT NULL
+            )
+            """
+        )
+    conn.commit()
+    cursor.close()
+
+# Ejecutar init_db al iniciar la aplicación en cualquier entorno (incluyendo Gunicorn)
+with app.app_context():
+    init_db()
+
 FIELDS = [
     "room",
     "ubicacion",
@@ -74,62 +88,23 @@ FIELDS = [
     "instalacion",
 ]
 
-
-def get_db():
-    """Abre (o reutiliza) la conexión SQLite de esta petición."""
-    if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-    return g.db
-
-
-@app.teardown_appcontext
-def close_db(exception=None):
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
-
-
-def init_db():
-    """Crea la tabla y el archivo inventario.db si no existen. Se llama una vez al iniciar la app."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS tvs (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            room          TEXT NOT NULL,
-            ubicacion     TEXT,
-            marca         TEXT,
-            modelo        TEXT NOT NULL,
-            serial        TEXT NOT NULL,
-            perifericos   TEXT,
-            instalacion   TEXT,
-            createdAt     INTEGER NOT NULL
-        )
-        """
-    )
-    conn.commit()
-    conn.close()
-
-
-def row_to_dict(row: sqlite3.Row) -> dict:
+def row_to_dict(row) -> dict:
     d = dict(row)
-    # El frontend espera un campo "id" como texto.
     d["id"] = str(d["id"])
     return d
-
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
 @app.route("/api/tvs", methods=["GET"])
 def list_tvs():
     db = get_db()
-    rows = db.execute('SELECT * FROM tvs ORDER BY "createdAt" DESC').fetchall()
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM tvs ORDER BY "createdAt" DESC')
+    rows = cursor.fetchall()
+    cursor.close()
     return jsonify([row_to_dict(r) for r in rows])
-
 
 @app.route("/api/tvs", methods=["POST"])
 def create_tv():
@@ -149,31 +124,53 @@ def create_tv():
 
     columns = FIELDS + ["createdAt"]
     quoted_columns = ", ".join(f'"{c}"' for c in columns)
-    placeholders = ", ".join(["?"] * len(columns))
+    
+    ph = "%s" if DATABASE_URL else "?"
+    placeholders = ", ".join([ph] * len(columns))
 
     db = get_db()
-    cur = db.execute(
-        f'INSERT INTO tvs ({quoted_columns}) VALUES ({placeholders})',
-        [values[f] for f in FIELDS] + [created_at],
-    )
-    db.commit()
-    new_row = db.execute('SELECT * FROM tvs WHERE id = ?', (cur.lastrowid,)).fetchone()
-    return jsonify(row_to_dict(new_row)), 201
+    cursor = db.cursor()
 
+    if DATABASE_URL:
+        cursor.execute(
+            f'INSERT INTO tvs ({quoted_columns}) VALUES ({placeholders}) RETURNING id',
+            [values[f] for f in FIELDS] + [created_at],
+        )
+        new_id = cursor.fetchone()["id"]
+        db.commit()
+        cursor.execute('SELECT * FROM tvs WHERE id = %s', (new_id,))
+        new_row = cursor.fetchone()
+    else:
+        cursor.execute(
+            f'INSERT INTO tvs ({quoted_columns}) VALUES ({placeholders})',
+            [values[f] for f in FIELDS] + [created_at],
+        )
+        db.commit()
+        cursor.execute('SELECT * FROM tvs WHERE id = ?', (cursor.lastrowid,))
+        new_row = cursor.fetchone()
+
+    cursor.close()
+    return jsonify(row_to_dict(new_row)), 201
 
 @app.route("/api/tvs/<int:tv_id>", methods=["PUT"])
 def update_tv(tv_id):
     payload = request.get_json(silent=True) or {}
 
     db = get_db()
-    existing = db.execute('SELECT * FROM tvs WHERE id = ?', (tv_id,)).fetchone()
+    cursor = db.cursor()
+    
+    sel_ph = "%s" if DATABASE_URL else "?"
+    cursor.execute(f'SELECT * FROM tvs WHERE id = {sel_ph}', (tv_id,))
+    existing = cursor.fetchone()
     if existing is None:
+        cursor.close()
         return jsonify({"error": "No encontrado"}), 404
 
     room = (payload.get("room") or "").strip()
     modelo = (payload.get("modelo") or "").strip()
     serial = (payload.get("serial") or "").strip()
     if not room or not modelo or not serial:
+        cursor.close()
         return jsonify({"error": "room, modelo y serial son obligatorios"}), 400
 
     values = {field: (payload.get(field) or "") for field in FIELDS}
@@ -181,17 +178,19 @@ def update_tv(tv_id):
     values["modelo"] = modelo
     values["serial"] = serial
 
-    set_clause = ", ".join(f'"{f}" = ?' for f in FIELDS)
-    db.execute(
-        f'UPDATE tvs SET {set_clause} WHERE id = ?',
+    eq_ph = "%s" if DATABASE_URL else "?"
+    set_clause = ", ".join(f'"{f}" = {eq_ph}' for f in FIELDS)
+    
+    cursor.execute(
+        f'UPDATE tvs SET {set_clause} WHERE id = {eq_ph}',
         [values[f] for f in FIELDS] + [tv_id],
     )
     db.commit()
-    updated = db.execute('SELECT * FROM tvs WHERE id = ?', (tv_id,)).fetchone()
+    
+    cursor.execute(f'SELECT * FROM tvs WHERE id = {sel_ph}', (tv_id,))
+    updated = cursor.fetchone()
+    cursor.close()
     return jsonify(row_to_dict(updated))
 
-
 if __name__ == "__main__":
-    init_db()
-    # host="0.0.0.0" permite abrir la app desde otros celulares en la misma red Wi-Fi
     app.run(host="0.0.0.0", port=5000, debug=True)
