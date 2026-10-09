@@ -20,16 +20,16 @@ archivo "inventario.db" (por ejemplo, al mover la carpeta completa a otra
 computadora), tus datos se mantienen intactos.
 """
 
-#import os
-#import sqlite3
-#import time
+import os
+import sqlite3
+import time
 
-#from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request
 
-#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#DB_PATH = os.path.join(BASE_DIR, "inventario.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "inventario.db")
 
-#app = Flask(__name__)
+app = Flask(__name__)
 
 import os
 import time
