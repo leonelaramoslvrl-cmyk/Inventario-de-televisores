@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inventario de televisores</title>
+<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkludmVudGFyaW8gZGUgdGVsZXZpc29yZXMiLAogICJzaG9ydF9uYW1lIjogIkludmVudGFyaW8gVFYiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI0U4RDNBQyIsCiAgInRoZW1lX2NvbG9yIjogIiNFOEQzQUMiLAogICJpY29ucyI6IFsKICAgIHsic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0F5TURBZ01qQXdJajQ4Y21WamRDQjNhV1IwYUQwaU1qQXdJaUJvWldsbmFIUTlJakl3TUNJZ2NuZzlJalF3SWlCbWFXeHNQU0lqTWtVM05rRTRJaTgrUEhKbFkzUWdlRDBpTkRBaUlIazlJalUxSWlCM2FXUjBhRDBpTVRJd0lpQm9aV2xuYUhROUlqZ3dJaUJ5ZUQwaU1UQWlJR1pwYkd3OUlpTkdNMFk0UmtNaUx6NDhjbVZqZENCNFBTSTROU0lnZVQwaU1UUTFJaUIzYVdSMGFEMGlNekFpSUdobGFXZG9kRDBpTVRBaUlISjRQU0kwSWlCbWFXeHNQU0lqUmpOR09FWkRJaTgrUEhKbFkzUWdlRDBpTmpZaUlIazlJakUxTnlJZ2QybGtkR2c5SWpZNElpQm9aV2xuYUhROUlqZ2lJSEo0UFNJMElpQm1hV3hzUFNJalJqTkdPRVpESWk4K1BDOXpkbWMrQ2c9PSIsICJzaXplcyI6ICJhbnkiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwgInB1cnBvc2UiOiAiYW55In0KICBdCn0K">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgcng9IjQwIiBmaWxsPSIjMkU3NkE4Ii8+PHJlY3QgeD0iNDAiIHk9IjU1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9IiNGM0Y4RkMiLz48cmVjdCB4PSI4NSIgeT0iMTQ1IiB3aWR0aD0iMzAiIGhlaWdodD0iMTAiIHJ4PSI0IiBmaWxsPSIjRjNGOEZDIi8+PHJlY3QgeD0iNjYiIHk9IjE1NyIgd2lkdGg9IjY4IiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjRjNGOEZDIi8+PC9zdmc+Cg==">
+<meta name="theme-color" content="#E8D3AC">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventario TV">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css?v=5">
+<script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="topRow">
+      <button type="button" class="menuBtn" id="btnOpenMenu" aria-label="Abrir menú de pisos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <h1>Inventario de televisores</h1>
+        <div class="sub">Registra cada TV desde el sitio: dicta habitación y pega el texto del código QR para tomar modelo y serial.</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="banner" id="dbBanner">
+    No se pudo conectar el registro compartido en esta vista — los datos que agregues solo se guardarán mientras esta página siga abierta y no se sincronizarán con otros dispositivos.
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>Nuevo registro</h2>
+
+    <div class="row2">
+      <div class="field">
+        <label for="fRoom">Número de habitación</label>
+        <div class="inputWithMic">
+          <input type="text" id="fRoom" inputmode="numeric" placeholder="Ejemplo 351">
+          <button type="button" class="micBtn" id="micRoom" title="Dictar" aria-label="Dictar número de habitación"></button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fUbic">Ubicación</label>
+        <select id="fUbic">
+          <option value="Habitación">Habitación</option>
+          <option value="Sala">Sala</option>
+          <option value="Habitación complementaria">Habitación complementaria</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="fMarca">Marca</label>
+        <input type="text" id="fMarca" value="Samsung">
+      </div>
+      <div class="field">
+        <label for="fInstal">Tipo de instalación</label>
+        <select id="fInstal">
+          <option value="Base fija">Base fija</option>
+          <option value="Base movible">Base movible</option>
+          <option value="Escritorio/Mueble">Escritorio/Mueble</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>¿Reconoce los periféricos?</label>
+      <div class="segmented" id="perifSeg">
+        <button type="button" class="segBtn" data-val="si">Sí</button>
+        <button type="button" class="segBtn" data-val="no">No</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="fQrPhoto">Foto del código QR</label>
+      <button type="button" class="btnGhost" id="btnOpenCamera" style="margin-bottom:8px;">Usar la cámara</button>
+      <input type="file" id="fQrPhoto" accept="image/*">
+      <div class="parsePreview" id="qrPhotoStatus"></div>
+    </div>
+
+    <div class="field">
+      <label for="fQr">O pega aquí el texto del código QR</label>
+      <textarea id="fQr" placeholder="MN : UN50RU7100PXPA&#10;SN : 08EJ3CXMC00489A&#10;..."></textarea>
+      <div class="parsePreview" id="qrPreview"></div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="fModelo">Modelo</label>
+        <input type="text" id="fModelo" placeholder="Se completa solo, o escríbelo">
+      </div>
+      <div class="field">
+        <label for="fSerial">Serial</label>
+        <input type="text" id="fSerial" placeholder="Se completa solo, o escríbelo">
+        <button type="button" class="quickFillBtn" id="btnSerialHidden">No lo muestra</button>
+      </div>
+    </div>
+
+    <button type="button" class="btnPrimary" id="btnAdd">Agregar registro</button>
+    <button type="button" class="btnGhost" id="btnAddAnother" style="margin-top:8px;">Agregar y registrar otro TV en esta habitación</button>
+    <button type="button" class="btnGhost" id="btnCancelEdit" style="display:none; margin-top:8px;">Cancelar edición</button>
+  </div>
+
+  <div class="homeHint">Toca <strong>☰ Registros</strong> arriba para ver, buscar y filtrar por piso todo lo registrado.</div>
+
+</div>
+
+<div class="footerBar">
+  <div class="footerInner">
+    <span class="count" id="footerCount">0 TVs registrados</span>
+    <button type="button" id="btnExport">Descargar Excel</button>
+  </div>
+</div>
+
+<div class="floorBackdrop" id="floorBackdrop"></div>
+<nav class="floorDrawer" id="floorDrawer">
+  <div class="floorDrawerTop">
+    <span>Menú</span>
+    <button type="button" id="btnCloseMenu" class="cameraClose" aria-label="Cerrar menú">✕</button>
+  </div>
+  <div id="floorList">
+    <button type="button" class="floorItem floorItemPrimary" id="btnOpenAll">
+      <span class="floorItemIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg></span>
+      <span class="floorItemLabel">Todos los registros</span>
+      <span class="n" id="allCount">0</span>
+    </button>
+
+    <div class="floorGroupLabel">Pisos y torres</div>
+    <div id="floorItemsWrap"></div>
+
+    <div class="floorGroupLabel">Herramientas</div>
+    <button type="button" class="floorItem floorItemTool" id="btnExportMenu">
+      <span class="floorItemIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg></span>
+      <span class="floorItemLabel">Descargar Excel</span>
+    </button>
+  </div>
+</nav>
+
+<div class="pageScreen" id="allPage">
+  <div class="pageHeader">
+    <button type="button" class="backBtn" id="btnBackFromAll" aria-label="Volver">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div>
+      <div class="pageTitle">Registros</div>
+      <div class="pageSub" id="allPageSub">0 registros</div>
+    </div>
+  </div>
+  <div class="pageContent" style="max-width:1100px;">
+    <div class="field searchBox">
+      <input type="text" id="fSearch" placeholder="Buscar por habitación, marca, modelo o serial...">
+    </div>
+    <div id="allPageList"></div>
+  </div>
+</div>
+
+<div class="pageScreen" id="floorPage">
+  <div class="pageHeader">
+    <button type="button" class="backBtn" id="btnBackFromFloor" aria-label="Volver">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div>
+      <div class="pageTitle" id="floorPageTitle">Piso</div>
+      <div class="pageSub" id="floorPageSub">0 registros</div>
+    </div>
+  </div>
+  <div class="pageContent" style="max-width:1100px;">
+    <div class="field searchBox">
+      <input type="text" id="fFloorSearch" placeholder="Buscar en este piso por habitación, marca, modelo o serial...">
+    </div>
+    <div id="floorPageList"></div>
+  </div>
+</div>
+
+<div class="pageScreen" id="detailPage">
+  <div class="pageHeader">
+    <button type="button" class="backBtn" id="btnBackFromDetail" aria-label="Volver">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div>
+      <div class="pageTitle" id="detailRoomTitle">Habitación</div>
+      <div class="pageSub" id="detailSub"></div>
+    </div>
+  </div>
+  <div class="pageContent" id="detailContent"></div>
+</div>
+
+<div class="cameraOverlay" id="cameraOverlay">
+  <div class="cameraTop">
+    <span>Apunta al código QR de la pantalla del TV</span>
+    <button type="button" id="btnCloseCamera" class="cameraClose" aria-label="Cerrar cámara">✕</button>
+  </div>
+  <video id="cameraVideo" playsinline autoplay muted></video>
+  <div class="cameraFrame"></div>
+  <div class="cameraBottom" id="cameraStatus">Solicitando acceso a la cámara…</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
+<script src="/static/script.js?v=8"></script>
+</body>
+</html>
