@@ -50,7 +50,7 @@ def init_db():
                 serial        TEXT NOT NULL,
                 perifericos   TEXT,
                 instalacion   TEXT,
-                createdAt     BIGINT NOT NULL
+                createdat     BIGINT NOT NULL
             )
             """
         )
@@ -67,7 +67,7 @@ def init_db():
                 serial        TEXT NOT NULL,
                 perifericos   TEXT,
                 instalacion   TEXT,
-                createdAt     INTEGER NOT NULL
+                createdat     INTEGER NOT NULL
             )
             """
         )
@@ -101,7 +101,7 @@ def index():
 def list_tvs():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute('SELECT * FROM tvs ORDER BY "createdAt" DESC')
+    cursor.execute("SELECT * FROM tvs ORDER BY createdat DESC")
     rows = cursor.fetchall()
     cursor.close()
     return jsonify([row_to_dict(r) for r in rows])
@@ -122,8 +122,8 @@ def create_tv():
     values["serial"] = serial
     created_at = int(time.time() * 1000)
 
-    columns = FIELDS + ["createdAt"]
-    quoted_columns = ", ".join(f'"{c}"' for c in columns)
+    columns = FIELDS + ["createdat"]
+    columns_str = ", ".join(columns)
     
     ph = "%s" if DATABASE_URL else "?"
     placeholders = ", ".join([ph] * len(columns))
@@ -133,20 +133,20 @@ def create_tv():
 
     if DATABASE_URL:
         cursor.execute(
-            f'INSERT INTO tvs ({quoted_columns}) VALUES ({placeholders}) RETURNING id',
+            f"INSERT INTO tvs ({columns_str}) VALUES ({placeholders}) RETURNING id",
             [values[f] for f in FIELDS] + [created_at],
         )
         new_id = cursor.fetchone()["id"]
         db.commit()
-        cursor.execute('SELECT * FROM tvs WHERE id = %s', (new_id,))
+        cursor.execute("SELECT * FROM tvs WHERE id = %s", (new_id,))
         new_row = cursor.fetchone()
     else:
         cursor.execute(
-            f'INSERT INTO tvs ({quoted_columns}) VALUES ({placeholders})',
+            f"INSERT INTO tvs ({columns_str}) VALUES ({placeholders})",
             [values[f] for f in FIELDS] + [created_at],
         )
         db.commit()
-        cursor.execute('SELECT * FROM tvs WHERE id = ?', (cursor.lastrowid,))
+        cursor.execute("SELECT * FROM tvs WHERE id = ?", (cursor.lastrowid,))
         new_row = cursor.fetchone()
 
     cursor.close()
@@ -160,7 +160,7 @@ def update_tv(tv_id):
     cursor = db.cursor()
     
     sel_ph = "%s" if DATABASE_URL else "?"
-    cursor.execute(f'SELECT * FROM tvs WHERE id = {sel_ph}', (tv_id,))
+    cursor.execute(f"SELECT * FROM tvs WHERE id = {sel_ph}", (tv_id,))
     existing = cursor.fetchone()
     if existing is None:
         cursor.close()
@@ -179,15 +179,15 @@ def update_tv(tv_id):
     values["serial"] = serial
 
     eq_ph = "%s" if DATABASE_URL else "?"
-    set_clause = ", ".join(f'"{f}" = {eq_ph}' for f in FIELDS)
+    set_clause = ", ".join(f"{f} = {eq_ph}" for f in FIELDS)
     
     cursor.execute(
-        f'UPDATE tvs SET {set_clause} WHERE id = {eq_ph}',
+        f"UPDATE tvs SET {set_clause} WHERE id = {eq_ph}",
         [values[f] for f in FIELDS] + [tv_id],
     )
     db.commit()
     
-    cursor.execute(f'SELECT * FROM tvs WHERE id = {sel_ph}', (tv_id,))
+    cursor.execute(f"SELECT * FROM tvs WHERE id = {sel_ph}", (tv_id,))
     updated = cursor.fetchone()
     cursor.close()
     return jsonify(row_to_dict(updated))
