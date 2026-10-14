@@ -91,6 +91,9 @@ FIELDS = [
 def row_to_dict(row) -> dict:
     d = dict(row)
     d["id"] = str(d["id"])
+    # Mapeamos createdat a createdAt para que el frontend lo reconozca
+    if "createdat" in d:
+        d["createdAt"] = d["createdat"]
     return d
 
 @app.route("/")
