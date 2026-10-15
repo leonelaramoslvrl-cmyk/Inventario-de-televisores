@@ -104,7 +104,8 @@ def index():
 def list_tvs():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM tvs ORDER BY createdat DESC")
+    # Organizados primero por habitación/piso y luego del más reciente al más antiguo
+    cursor.execute("SELECT * FROM tvs ORDER BY room ASC, createdat DESC")
     rows = cursor.fetchall()
     cursor.close()
     return jsonify([row_to_dict(r) for r in rows])
@@ -167,7 +168,7 @@ def update_tv(tv_id):
     existing = cursor.fetchone()
     if existing is None:
         cursor.close()
-        return jsonify({"error": "No encontrado"}), 404
+        return jsonify({"error": "No encontrado"}}, 404
 
     room = (payload.get("room") or "").strip()
     modelo = (payload.get("modelo") or "").strip()
