@@ -77,7 +77,6 @@
       </div>
     </div>
 
-    <!-- Tipo de conexión arriba en solitario -->
     <div class="field">
       <label for="fConexion">Tipo de conexión</label>
       <select id="fConexion">
@@ -87,7 +86,6 @@
       </select>
     </div>
 
-    <!-- Periféricos e InterGO+ uno al lado del otro -->
     <div class="row2">
       <div class="field">
         <label>¿Reconoce periféricos?</label>
@@ -105,12 +103,18 @@
       </div>
     </div>
 
-    <div class="field">
-      <label for="fQrPhoto">Foto del código QR</label>
-      <button type="button" class="btnGhost" id="btnOpenCamera" style="margin-bottom:8px;">Usar la cámara</button>
-      <input type="file" id="fQrPhoto" accept="image/*">
-      <div class="parsePreview" id="qrPhotoStatus"></div>
+    <!-- Subir código QR: Lado a lado (Abrir cámara / Seleccionar archivo) -->
+    <div class="row2">
+      <div class="field">
+        <label>Subir código QR</label>
+        <button type="button" class="btnGhost" id="btnOpenCamera">📷 Abrir cámara</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label> <!-- Espaciador para alinear correctamente con la etiqueta de al lado -->
+        <input type="file" id="fQrPhoto" accept="image/*">
+      </div>
     </div>
+    <div class="parsePreview" id="qrPhotoStatus"></div>
 
     <div class="field">
       <label for="fQr">O pega aquí el texto del código QR</label>
