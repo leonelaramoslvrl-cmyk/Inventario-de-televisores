@@ -103,25 +103,20 @@
       </div>
     </div>
 
-    <!-- Subir código QR: Lado a lado (Abrir cámara / Seleccionar archivo) -->
+    <!-- Subir código QR lado a lado -->
     <div class="row2">
       <div class="field">
         <label>Subir código QR</label>
-        <button type="button" class="btnGhost" id="btnOpenCamera"> Usar la cámara</button>
+        <button type="button" class="btnGhost" id="btnOpenCamera">📷 Abrir cámara</button>
       </div>
       <div class="field">
-        <label>&nbsp;</label> <!-- Espaciador para alinear correctamente con la etiqueta de al lado -->
+        <label>&nbsp;</label>
         <input type="file" id="fQrPhoto" accept="image/*">
       </div>
     </div>
     <div class="parsePreview" id="qrPhotoStatus"></div>
 
-    <div class="field">
-      <label for="fQr">O pega aquí el texto del código QR</label>
-      <textarea id="fQr" placeholder="MN : UN50RU7100PXPA&#10;SN : 08EJ3CXMC00489A&#10;..."></textarea>
-      <div class="parsePreview" id="qrPreview"></div>
-    </div>
-
+    <!-- Modelo y Serial ahora colocados antes de pegar el texto -->
     <div class="row2">
       <div class="field">
         <label for="fModelo">Modelo</label>
@@ -132,6 +127,13 @@
         <input type="text" id="fSerial" placeholder="Se completa solo, o escríbelo">
         <button type="button" class="quickFillBtn" id="btnSerialHidden">No lo muestra</button>
       </div>
+    </div>
+
+    <!-- Campo para pegar el texto del QR -->
+    <div class="field">
+      <label for="fQr">O pega aquí el texto del código QR</label>
+      <textarea id="fQr" placeholder="MN : UN50RU7100PXPA&#10;SN : 08EJ3CXMC00489A&#10;..."></textarea>
+      <div class="parsePreview" id="qrPreview"></div>
     </div>
 
     <button type="button" class="btnPrimary" id="btnAdd">Agregar registro</button>
