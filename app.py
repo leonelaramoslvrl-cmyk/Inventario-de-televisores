@@ -50,6 +50,7 @@ def init_db():
                 serial        TEXT NOT NULL,
                 perifericos   TEXT,
                 instalacion   TEXT,
+                conexion      TEXT,
                 createdat     BIGINT NOT NULL
             )
             """
@@ -67,10 +68,20 @@ def init_db():
                 serial        TEXT NOT NULL,
                 perifericos   TEXT,
                 instalacion   TEXT,
+                conexion      TEXT,
                 createdat     INTEGER NOT NULL
             )
             """
         )
+    # Migración: si la base ya existía sin la columna "conexion", se agrega.
+    # No borra ni modifica los registros que ya tienes.
+    if DATABASE_URL:
+        cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS conexion TEXT")
+    else:
+        cursor.execute("PRAGMA table_info(tvs)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "conexion" not in columns:
+            cursor.execute("ALTER TABLE tvs ADD COLUMN conexion TEXT")
     conn.commit()
     cursor.close()
 
@@ -85,6 +96,7 @@ FIELDS = [
     "modelo",
     "serial",
     "perifericos",
+    "conexion",
     "instalacion",
 ]
 
@@ -104,8 +116,7 @@ def index():
 def list_tvs():
     db = get_db()
     cursor = db.cursor()
-    # Organizados primero por habitación/piso y luego del más reciente al más antiguo
-    cursor.execute("SELECT * FROM tvs ORDER BY room ASC, createdat DESC")
+    cursor.execute("SELECT * FROM tvs ORDER BY createdat DESC")
     rows = cursor.fetchall()
     cursor.close()
     return jsonify([row_to_dict(r) for r in rows])
@@ -168,7 +179,7 @@ def update_tv(tv_id):
     existing = cursor.fetchone()
     if existing is None:
         cursor.close()
-        return jsonify({"error": "No encontrado"}}, 404
+        return jsonify({"error": "No encontrado"}), 404
 
     room = (payload.get("room") or "").strip()
     modelo = (payload.get("modelo") or "").strip()

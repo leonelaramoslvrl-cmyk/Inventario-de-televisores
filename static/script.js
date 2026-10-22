@@ -7,6 +7,7 @@
     micRoom: $('micRoom'),
     ubic: $('fUbic'),
     marca: $('fMarca'),
+    conexion: $('fConexion'),
     instal: $('fInstal'),
     qr: $('fQr'),
     modelo: $('fModelo'),
@@ -283,7 +284,10 @@
     if (!keepRoom) {
       if (els.room) els.room.value = '';
       if (els.ubic) els.ubic.value = 'Habitación';
-      if (els.marca) els.marca.value = 'Samsung';
+      if (els.marca) {
+        els.marca.querySelectorAll('option[data-extra]').forEach(o => o.remove());
+        els.marca.value = 'Samsung';
+      }
       if (els.instal) els.instal.value = 'Base fija';
     }
     if (els.qr) els.qr.value = '';
@@ -297,6 +301,7 @@
     }
     perifValue = null;
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.remove('active'));
+    if (els.conexion) els.conexion.value = '';
     state.editingId = null;
     if (els.btnAdd) els.btnAdd.textContent = 'Agregar registro';
     if (els.btnCancelEdit) els.btnCancelEdit.style.display = 'none';
@@ -447,7 +452,7 @@
   function matchesQuery(e, rawQuery) {
     const q = normalizeText(rawQuery).trim();
     if (!q) return true;
-    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion].join(' '));
+    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion].join(' '));
     // Todas las palabras escritas deben aparecer (ej. "351 samsung")
     return q.split(/\s+/).every(word => haystack.includes(word));
   }
@@ -524,6 +529,7 @@
           '<div class="full"><div class="k">Modelo</div><div class="v">' + escapeHtml(e.modelo || '—') + '</div></div>' +
           '<div class="full"><div class="k">Serial</div><div class="v">' + escapeHtml(e.serial || '—') + '</div></div>' +
           '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
+          '<div><div class="k">Tipo de conexión</div><div class="v">' + escapeHtml(e.conexion || '—') + '</div></div>' +
           '<div><div class="k">Registrado</div><div class="v">' + escapeHtml(formatDateTime(e.createdAt)) + '</div></div>' +
         '</div>' +
         '<button type="button" class="detailEditBtn" id="btnEditFromDetail">Editar este registro</button>';
@@ -565,6 +571,7 @@
         '<td class="mono">' + escapeHtml(e.modelo || '—') + '</td>' +
         '<td class="mono">' + escapeHtml(e.serial || '—') + '</td>' +
         '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
+        '<td>' + escapeHtml(e.conexion || '—') + '</td>' +
         '<td>' + escapeHtml(e.instalacion || '—') + '</td>' +
         '<td>' + escapeHtml(formatDateTime(e.createdAt)) + '</td>' +
         '<td class="actionsCell">' +
@@ -576,7 +583,7 @@
     return '<div class="tableScroll"><table class="recordsTable">' +
       '<thead><tr>' +
         '<th>Hab.</th><th>Ubicación</th><th>Marca</th><th>Modelo</th><th>Serial</th>' +
-        '<th>Periféricos</th><th>Instalación</th><th>Registrado</th><th></th>' +
+        '<th>Periféricos</th><th>Conexión</th><th>Instalación</th><th>Registrado</th><th></th>' +
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table></div>';
@@ -625,7 +632,15 @@
     state.editingId = id;
     if (els.room) els.room.value = e.room;
     if (els.ubic) els.ubic.value = e.ubicacion || 'Habitación';
-    if (els.marca) els.marca.value = e.marca || 'Samsung';
+    if (els.marca) {
+      const marca = e.marca || 'Samsung';
+      if (!Array.from(els.marca.options).some(o => o.value === marca)) {
+        const extra = new Option(marca, marca);
+        extra.dataset.extra = '1';
+        els.marca.add(extra);
+      }
+      els.marca.value = marca;
+    }
     if (els.instal) els.instal.value = e.instalacion || 'Base fija';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
@@ -639,6 +654,7 @@
     
     perifValue = e.perifericos === 'Sí' ? 'si' : (e.perifericos === 'No' ? 'no' : null);
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b.dataset.val === perifValue));
+    if (els.conexion) els.conexion.value = e.conexion || '';
     
     if (els.btnAdd) els.btnAdd.textContent = 'Guardar cambios';
     if (els.btnCancelEdit) els.btnCancelEdit.style.display = 'block';
@@ -699,6 +715,7 @@
       marca: els.marca.value.trim(),
       instalacion: els.instal.value,
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
+      conexion: els.conexion ? els.conexion.value : '',
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -763,7 +780,7 @@
       return;
     }
     try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', '¿Reconoce los periféricos?', 'Tipo de instalación', 'Fecha y hora de registro'];
+      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', '¿Reconoce los periféricos?', 'Tipo de conexión', 'Tipo de instalación', 'Fecha y hora de registro'];
       const rows = state.entries
         .slice()
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
@@ -774,6 +791,7 @@
           e.modelo || '',
           e.serial || '',
           e.perifericos || '',
+          e.conexion || '',
           e.instalacion || '',
           formatDateTime(e.createdAt)
         ]);
