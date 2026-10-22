@@ -28,7 +28,7 @@
     toast: $('toast'),
     banner: $('dbBanner'),
     perifSeg: $('perifSeg'),
-    intergoSeg: $('intergoSeg'), // Selector segmentado de InterGO+
+    intergoSeg: $('intergoSeg'),
     floorSearch: $('fFloorSearch'),
     btnOpenMenu: $('btnOpenMenu'),
     btnCloseMenu: $('btnCloseMenu'),
@@ -95,7 +95,7 @@
     });
   }
 
-  // ---------- Control Segmentado: InterGO+ ----------
+  // ---------- Control Segmentado: InterGO+ (Barra completa) ----------
   if (els.intergoSeg) {
     els.intergoSeg.querySelectorAll('.segBtn').forEach(btn => {
       btn.addEventListener('click', () => {
