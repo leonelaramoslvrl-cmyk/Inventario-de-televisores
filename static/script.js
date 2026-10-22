@@ -28,16 +28,17 @@
     toast: $('toast'),
     banner: $('dbBanner'),
     perifSeg: $('perifSeg'),
+    intergoSeg: $('intergoSeg'), // Selector segmentado de InterGO+
     floorSearch: $('fFloorSearch'),
     btnOpenMenu: $('btnOpenMenu'),
     btnCloseMenu: $('btnCloseMenu'),
     floorDrawer: $('floorDrawer'),
     floorBackdrop: $('floorBackdrop'),
-    floorList: $('floorList'),
-    intergo: $('fIntergo') // Elemento añadido
+    floorList: $('floorList')
   };
 
   let perifValue = null;
+  let intergoValue = null;
 
   if (els.micRoom) {
     els.micRoom.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
@@ -90,6 +91,16 @@
       btn.addEventListener('click', () => {
         perifValue = btn.dataset.val;
         els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+  }
+
+  // ---------- Control Segmentado: InterGO+ ----------
+  if (els.intergoSeg) {
+    els.intergoSeg.querySelectorAll('.segBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        intergoValue = btn.dataset.val;
+        els.intergoSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b === btn));
       });
     });
   }
@@ -301,9 +312,10 @@
       els.qrPhotoStatus.textContent = '';
     }
     perifValue = null;
+    intergoValue = null;
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.remove('active'));
+    if (els.intergoSeg) els.intergoSeg.querySelectorAll('.segBtn').forEach(b => b.classList.remove('active'));
     if (els.conexion) els.conexion.value = '';
-    if (els.intergo) els.intergo.checked = false; // Limpiar checkbox
     state.editingId = null;
     if (els.btnAdd) els.btnAdd.textContent = 'Agregar registro';
     if (els.btnCancelEdit) els.btnCancelEdit.style.display = 'none';
@@ -531,7 +543,7 @@
           '<div class="full"><div class="k">Serial</div><div class="v">' + escapeHtml(e.serial || '—') + '</div></div>' +
           '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
           '<div><div class="k">Tipo de conexión</div><div class="v">' + escapeHtml(e.conexion || '—') + '</div></div>' +
-          '<div><div class="k">InterGO+ instalado</div><div class="v">' + escapeHtml(e.intergo || 'No') + '</div></div>' +
+          '<div><div class="k">InterGO+ instalado</div><div class="v">' + escapeHtml(e.intergo || '—') + '</div></div>' +
           '<div><div class="k">Registrado</div><div class="v">' + escapeHtml(formatDateTime(e.createdAt)) + '</div></div>' +
         '</div>' +
         '<button type="button" class="detailEditBtn" id="btnEditFromDetail">Editar este registro</button>';
@@ -574,7 +586,7 @@
         '<td class="mono">' + escapeHtml(e.serial || '—') + '</td>' +
         '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
         '<td>' + escapeHtml(e.conexion || '—') + '</td>' +
-        '<td>' + escapeHtml(e.intergo || 'No') + '</td>' +
+        '<td>' + escapeHtml(e.intergo || '—') + '</td>' +
         '<td>' + escapeHtml(e.instalacion || '—') + '</td>' +
         '<td>' + escapeHtml(formatDateTime(e.createdAt)) + '</td>' +
         '<td class="actionsCell">' +
@@ -657,8 +669,11 @@
     
     perifValue = e.perifericos === 'Sí' ? 'si' : (e.perifericos === 'No' ? 'no' : null);
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b.dataset.val === perifValue));
+
+    intergoValue = e.intergo === 'Sí' ? 'si' : (e.intergo === 'No' ? 'no' : null);
+    if (els.intergoSeg) els.intergoSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b.dataset.val === intergoValue));
+
     if (els.conexion) els.conexion.value = e.conexion || '';
-    if (els.intergo) els.intergo.checked = (e.intergo === 'Sí'); // Cargar valor al editar
     
     if (els.btnAdd) els.btnAdd.textContent = 'Guardar cambios';
     if (els.btnCancelEdit) els.btnCancelEdit.style.display = 'block';
@@ -720,7 +735,7 @@
       instalacion: els.instal.value,
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       conexion: els.conexion ? els.conexion.value : '',
-      intergo: els.intergo && els.intergo.checked ? 'Sí' : 'No', // Valor añadido
+      intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -796,7 +811,7 @@
           e.serial || '',
           e.perifericos || '',
           e.conexion || '',
-          e.intergo || 'No', // Incluido en exportación
+          e.intergo || '',
           e.instalacion || '',
           formatDateTime(e.createdAt)
         ]);

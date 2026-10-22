@@ -2,7 +2,6 @@ import os
 import time
 from flask import Flask, g, jsonify, render_template, request
 
-# Intentamos importar psycopg2 para PostgreSQL en producción
 try:
     import psycopg2
     import psycopg2.extras
@@ -17,7 +16,6 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 app = Flask(__name__)
 
 def get_db():
-    """Abre o reutiliza la conexión a la base de datos (PostgreSQL en Render o SQLite local)."""
     if "db" not in g:
         if DATABASE_URL:
             url = DATABASE_URL.replace("postgres://", "postgresql://", 1) if DATABASE_URL.startswith("postgres://") else DATABASE_URL
@@ -35,7 +33,6 @@ def close_db(exception=None):
         db.close()
 
 def init_db():
-    """Crea la tabla adaptada al motor de base de datos en uso."""
     conn = get_db()
     cursor = conn.cursor()
     if DATABASE_URL:
@@ -76,7 +73,6 @@ def init_db():
             """
         )
     
-    # Migración: añadir columnas si la base de datos ya existía
     if DATABASE_URL:
         cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS conexion TEXT")
         cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS intergo TEXT")
@@ -91,7 +87,6 @@ def init_db():
     conn.commit()
     cursor.close()
 
-# Ejecutar init_db al iniciar la aplicación en cualquier entorno (incluyendo Gunicorn)
 with app.app_context():
     init_db()
 
