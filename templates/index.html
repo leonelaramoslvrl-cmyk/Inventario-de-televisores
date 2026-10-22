@@ -15,9 +15,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css?v=5">
 <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
 
@@ -91,10 +88,19 @@
       <div class="field">
         <label for="fConexion">Tipo de conexión</label>
         <select id="fConexion">
+          <option value="" disabled selected hidden>Seleccionar</option>
           <option value="Inalámbrica">Inalámbrica</option>
-          <option value="Cableado">Cableado</option>
+          <option value="Cableado">Cableada</option>
         </select>
       </div>
+    </div>
+
+    <!-- Campo añadido: InterGO+ -->
+    <div class="field" style="margin-top: 4px;">
+      <label class="checkboxLabel" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+        <input type="checkbox" id="fIntergo" style="width: 18px; height: 18px; accent-color: #2E76A8;">
+        <span>Tiene instalado InterGO+</span>
+      </label>
     </div>
 
     <div class="field">

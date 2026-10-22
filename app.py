@@ -51,6 +51,7 @@ def init_db():
                 perifericos   TEXT,
                 instalacion   TEXT,
                 conexion      TEXT,
+                intergo       TEXT,
                 createdat     BIGINT NOT NULL
             )
             """
@@ -69,19 +70,24 @@ def init_db():
                 perifericos   TEXT,
                 instalacion   TEXT,
                 conexion      TEXT,
+                intergo       TEXT,
                 createdat     INTEGER NOT NULL
             )
             """
         )
-    # Migración: si la base ya existía sin la columna "conexion", se agrega.
-    # No borra ni modifica los registros que ya tienes.
+    
+    # Migración: añadir columnas si la base de datos ya existía
     if DATABASE_URL:
         cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS conexion TEXT")
+        cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS intergo TEXT")
     else:
         cursor.execute("PRAGMA table_info(tvs)")
         columns = [row[1] for row in cursor.fetchall()]
         if "conexion" not in columns:
             cursor.execute("ALTER TABLE tvs ADD COLUMN conexion TEXT")
+        if "intergo" not in columns:
+            cursor.execute("ALTER TABLE tvs ADD COLUMN intergo TEXT")
+            
     conn.commit()
     cursor.close()
 
@@ -97,13 +103,13 @@ FIELDS = [
     "serial",
     "perifericos",
     "conexion",
+    "intergo",
     "instalacion",
 ]
 
 def row_to_dict(row) -> dict:
     d = dict(row)
     d["id"] = str(d["id"])
-    # Mapeamos createdat a createdAt para que el frontend lo reconozca
     if "createdat" in d:
         d["createdAt"] = d["createdat"]
     return d

@@ -33,7 +33,8 @@
     btnCloseMenu: $('btnCloseMenu'),
     floorDrawer: $('floorDrawer'),
     floorBackdrop: $('floorBackdrop'),
-    floorList: $('floorList')
+    floorList: $('floorList'),
+    intergo: $('fIntergo') // Elemento añadido
   };
 
   let perifValue = null;
@@ -302,6 +303,7 @@
     perifValue = null;
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.remove('active'));
     if (els.conexion) els.conexion.value = '';
+    if (els.intergo) els.intergo.checked = false; // Limpiar checkbox
     state.editingId = null;
     if (els.btnAdd) els.btnAdd.textContent = 'Agregar registro';
     if (els.btnCancelEdit) els.btnCancelEdit.style.display = 'none';
@@ -452,8 +454,7 @@
   function matchesQuery(e, rawQuery) {
     const q = normalizeText(rawQuery).trim();
     if (!q) return true;
-    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion].join(' '));
-    // Todas las palabras escritas deben aparecer (ej. "351 samsung")
+    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion, e.intergo].join(' '));
     return q.split(/\s+/).every(word => haystack.includes(word));
   }
 
@@ -530,6 +531,7 @@
           '<div class="full"><div class="k">Serial</div><div class="v">' + escapeHtml(e.serial || '—') + '</div></div>' +
           '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
           '<div><div class="k">Tipo de conexión</div><div class="v">' + escapeHtml(e.conexion || '—') + '</div></div>' +
+          '<div><div class="k">InterGO+ instalado</div><div class="v">' + escapeHtml(e.intergo || 'No') + '</div></div>' +
           '<div><div class="k">Registrado</div><div class="v">' + escapeHtml(formatDateTime(e.createdAt)) + '</div></div>' +
         '</div>' +
         '<button type="button" class="detailEditBtn" id="btnEditFromDetail">Editar este registro</button>';
@@ -572,6 +574,7 @@
         '<td class="mono">' + escapeHtml(e.serial || '—') + '</td>' +
         '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
         '<td>' + escapeHtml(e.conexion || '—') + '</td>' +
+        '<td>' + escapeHtml(e.intergo || 'No') + '</td>' +
         '<td>' + escapeHtml(e.instalacion || '—') + '</td>' +
         '<td>' + escapeHtml(formatDateTime(e.createdAt)) + '</td>' +
         '<td class="actionsCell">' +
@@ -583,7 +586,7 @@
     return '<div class="tableScroll"><table class="recordsTable">' +
       '<thead><tr>' +
         '<th>Hab.</th><th>Ubicación</th><th>Marca</th><th>Modelo</th><th>Serial</th>' +
-        '<th>Periféricos</th><th>Conexión</th><th>Instalación</th><th>Registrado</th><th></th>' +
+        '<th>Periféricos</th><th>Conexión</th><th>InterGO+</th><th>Instalación</th><th>Registrado</th><th></th>' +
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table></div>';
@@ -655,6 +658,7 @@
     perifValue = e.perifericos === 'Sí' ? 'si' : (e.perifericos === 'No' ? 'no' : null);
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b.dataset.val === perifValue));
     if (els.conexion) els.conexion.value = e.conexion || '';
+    if (els.intergo) els.intergo.checked = (e.intergo === 'Sí'); // Cargar valor al editar
     
     if (els.btnAdd) els.btnAdd.textContent = 'Guardar cambios';
     if (els.btnCancelEdit) els.btnCancelEdit.style.display = 'block';
@@ -716,6 +720,7 @@
       instalacion: els.instal.value,
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       conexion: els.conexion ? els.conexion.value : '',
+      intergo: els.intergo && els.intergo.checked ? 'Sí' : 'No', // Valor añadido
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -761,7 +766,6 @@
   // ---------- Exportación a Excel ----------
   function downloadCsvFallback(headers, rows) {
     const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    // BOM \ufeff para que Excel muestre bien tildes y ñ
     const csv = '\ufeff' + [headers].concat(rows).map(r => r.map(esc).join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -780,7 +784,7 @@
       return;
     }
     try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', '¿Reconoce los periféricos?', 'Tipo de conexión', 'Tipo de instalación', 'Fecha y hora de registro'];
+      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', '¿Reconoce los periféricos?', 'Tipo de conexión', 'InterGO+', 'Tipo de instalación', 'Fecha y hora de registro'];
       const rows = state.entries
         .slice()
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
@@ -792,6 +796,7 @@
           e.serial || '',
           e.perifericos || '',
           e.conexion || '',
+          e.intergo || 'No', // Incluido en exportación
           e.instalacion || '',
           formatDateTime(e.createdAt)
         ]);
@@ -803,7 +808,6 @@
         XLSX.writeFile(workbook, 'Inventario_TVs.xlsx');
         showToast('Archivo Excel generado.');
       } else {
-        // La librería de Excel se carga desde internet; si no cargó, se baja un CSV que Excel también abre.
         downloadCsvFallback(headers, rows);
         showToast('No cargó la librería de Excel. Se descargó un CSV que puedes abrir con Excel.');
       }
