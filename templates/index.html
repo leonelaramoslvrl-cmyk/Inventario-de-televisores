@@ -77,25 +77,26 @@
       </div>
     </div>
 
-    <div class="row2">
-      <div class="field">
-        <label>¿Reconoce los periféricos?</label>
-        <div class="segmented" id="perifSeg">
-          <button type="button" class="segBtn" data-val="si" aria-label="Sí">✓ Sí</button>
-          <button type="button" class="segBtn" data-val="no" aria-label="No">✗ No</button>
-        </div>
-      </div>
-      <div class="field">
-        <label for="fConexion">Tipo de conexión</label>
-        <select id="fConexion">
-          <option value="" disabled selected hidden>Seleccionar</option>
-          <option value="Inalámbrica">Inalámbrica</option>
-          <option value="Cableado">Cableada</option>
-        </select>
+    <!-- Tipo de conexión ahora arriba -->
+    <div class="field">
+      <label for="fConexion">Tipo de conexión</label>
+      <select id="fConexion">
+        <option value="" disabled selected hidden>Seleccionar</option>
+        <option value="Inalámbrica">Inalámbrica</option>
+        <option value="Cableado">Cableada</option>
+      </select>
+    </div>
+
+    <!-- Periféricos debajo -->
+    <div class="field">
+      <label>¿Reconoce los periféricos?</label>
+      <div class="segmented" id="perifSeg">
+        <button type="button" class="segBtn" data-val="si" aria-label="Sí">✓ Sí</button>
+        <button type="button" class="segBtn" data-val="no" aria-label="No">✗ No</button>
       </div>
     </div>
 
-    <!-- Barra completa de ancho total para InterGO+ -->
+    <!-- InterGO+ al mismo nivel estético -->
     <div class="field">
       <label>¿Tiene instalado InterGO+?</label>
       <div class="segmented" id="intergoSeg">

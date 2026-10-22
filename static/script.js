@@ -95,7 +95,7 @@
     });
   }
 
-  // ---------- Control Segmentado: InterGO+ (Barra completa) ----------
+  // ---------- Control Segmentado: InterGO+ ----------
   if (els.intergoSeg) {
     els.intergoSeg.querySelectorAll('.segBtn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -541,8 +541,8 @@
           '<div><div class="k">Tipo de instalación</div><div class="v">' + escapeHtml(e.instalacion || '—') + '</div></div>' +
           '<div class="full"><div class="k">Modelo</div><div class="v">' + escapeHtml(e.modelo || '—') + '</div></div>' +
           '<div class="full"><div class="k">Serial</div><div class="v">' + escapeHtml(e.serial || '—') + '</div></div>' +
-          '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
           '<div><div class="k">Tipo de conexión</div><div class="v">' + escapeHtml(e.conexion || '—') + '</div></div>' +
+          '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
           '<div><div class="k">InterGO+ instalado</div><div class="v">' + escapeHtml(e.intergo || '—') + '</div></div>' +
           '<div><div class="k">Registrado</div><div class="v">' + escapeHtml(formatDateTime(e.createdAt)) + '</div></div>' +
         '</div>' +
@@ -584,8 +584,8 @@
         '<td>' + escapeHtml(e.marca || '—') + '</td>' +
         '<td class="mono">' + escapeHtml(e.modelo || '—') + '</td>' +
         '<td class="mono">' + escapeHtml(e.serial || '—') + '</td>' +
-        '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
         '<td>' + escapeHtml(e.conexion || '—') + '</td>' +
+        '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
         '<td>' + escapeHtml(e.intergo || '—') + '</td>' +
         '<td>' + escapeHtml(e.instalacion || '—') + '</td>' +
         '<td>' + escapeHtml(formatDateTime(e.createdAt)) + '</td>' +
@@ -598,7 +598,7 @@
     return '<div class="tableScroll"><table class="recordsTable">' +
       '<thead><tr>' +
         '<th>Hab.</th><th>Ubicación</th><th>Marca</th><th>Modelo</th><th>Serial</th>' +
-        '<th>Periféricos</th><th>Conexión</th><th>InterGO+</th><th>Instalación</th><th>Registrado</th><th></th>' +
+        '<th>Conexión</th><th>Periféricos</th><th>InterGO+</th><th>Instalación</th><th>Registrado</th><th></th>' +
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table></div>';
@@ -733,8 +733,8 @@
       ubicacion: els.ubic.value,
       marca: els.marca.value.trim(),
       instalacion: els.instal.value,
-      perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       conexion: els.conexion ? els.conexion.value : '',
+      perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
@@ -799,7 +799,7 @@
       return;
     }
     try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', '¿Reconoce los periféricos?', 'Tipo de conexión', 'InterGO+', 'Tipo de instalación', 'Fecha y hora de registro'];
+      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', 'Tipo de conexión', '¿Reconoce los periféricos?', 'InterGO+', 'Tipo de instalación', 'Fecha y hora de registro'];
       const rows = state.entries
         .slice()
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
@@ -809,8 +809,8 @@
           e.marca || '',
           e.modelo || '',
           e.serial || '',
-          e.perifericos || '',
           e.conexion || '',
+          e.perifericos || '',
           e.intergo || '',
           e.instalacion || '',
           formatDateTime(e.createdAt)
