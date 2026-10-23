@@ -226,8 +226,11 @@ def export_excel():
             cell.border = thin_border
 
         for row_idx, item in enumerate(data_list, start=2):
+            room_raw = item.get("room", "")
+            room_val = int(room_raw) if str(room_raw).isdigit() else room_raw
+
             row_data = [
-                item.get("room", ""),
+                room_val,
                 item.get("ubicacion", ""),
                 item.get("marca", ""),
                 item.get("modelo", ""),
