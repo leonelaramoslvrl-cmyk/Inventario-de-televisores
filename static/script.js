@@ -9,10 +9,9 @@
     marca: $('fMarca'),
     conexion: $('fConexion'),
     instal: $('fInstal'),
-    qr: $('fQr'),
     modelo: $('fModelo'),
     serial: $('fSerial'),
-    qrPreview: $('qrPreview'),
+    comentarios: $('fComentarios'), // Campo de comentarios
     btnAdd: $('btnAdd'),
     btnCancelEdit: $('btnCancelEdit'),
     qrPhoto: $('fQrPhoto'),
@@ -116,32 +115,11 @@
   }
 
   function applyQrText(text) {
-    if (els.qr) els.qr.value = text;
-    updateQrPreviewFromText(text);
-  }
-
-  function updateQrPreviewFromText(text) {
-    if (!els.qrPreview) return;
-    if (!text.trim()) { 
-      els.qrPreview.classList.remove('show', 'warn'); 
-      return; 
-    }
     const { modelo, serial } = parseQr(text);
     if (modelo && els.modelo) els.modelo.value = modelo;
     if (serial && els.serial) els.serial.value = serial;
-    
-    els.qrPreview.classList.add('show');
-    if (modelo || serial) {
-      els.qrPreview.classList.remove('warn');
-      els.qrPreview.innerHTML = 'Detectado — Modelo: <b>' + (modelo || '—') + '</b> · Serial: <b>' + (serial || '—') + '</b>';
-    } else {
-      els.qrPreview.classList.add('warn');
-      els.qrPreview.innerHTML = '<b>No encontré "MN" ni "SN"</b> en ese texto. Completa Modelo y Serial manualmente.';
-    }
     validate();
   }
-
-  if (els.qr) els.qr.addEventListener('input', () => updateQrPreviewFromText(els.qr.value));
 
   // ---------- Escáner de cámara en directo usando ZXing ----------
   let codeReader = null; 
@@ -157,16 +135,10 @@
   function stopCamera() {
     isScanning = false;
     if (codeReader) {
-      try {
-        codeReader.reset();
-      } catch (e) {}
+      try { codeReader.reset(); } catch (e) {}
     }
-    if (els.cameraVideo) {
-      els.cameraVideo.srcObject = null;
-    }
-    if (els.cameraOverlay) {
-      els.cameraOverlay.classList.remove('show');
-    }
+    if (els.cameraVideo) { els.cameraVideo.srcObject = null; }
+    if (els.cameraOverlay) { els.cameraOverlay.classList.remove('show'); }
   }
 
   function openCamera() {
@@ -190,16 +162,10 @@
       els.cameraVideo,
       (result, err) => {
         if (!isScanning) return;
-        
         if (result) {
-          const decodedText = result.getText();
-          applyQrText(decodedText);
+          applyQrText(result.getText());
           setPhotoStatus('Código QR leído con la cámara ✓', false);
-          
-          if (navigator.vibrate) {
-            navigator.vibrate(200);
-          }
-
+          if (navigator.vibrate) navigator.vibrate(200);
           stopCamera();
           showToast('Código QR leído correctamente.');
         }
@@ -302,10 +268,9 @@
       }
       if (els.instal) els.instal.value = 'Base fija';
     }
-    if (els.qr) els.qr.value = '';
     if (els.modelo) els.modelo.value = '';
     if (els.serial) els.serial.value = '';
-    if (els.qrPreview) els.qrPreview.classList.remove('show', 'warn');
+    if (els.comentarios) els.comentarios.value = ''; // Limpiar comentarios
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -466,7 +431,7 @@
   function matchesQuery(e, rawQuery) {
     const q = normalizeText(rawQuery).trim();
     if (!q) return true;
-    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion, e.intergo].join(' '));
+    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion, e.intergo, e.comentarios].join(' '));
     return q.split(/\s+/).every(word => haystack.includes(word));
   }
 
@@ -544,6 +509,7 @@
           '<div><div class="k">Tipo de conexión</div><div class="v">' + escapeHtml(e.conexion || '—') + '</div></div>' +
           '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
           '<div><div class="k">InterGO+ instalado</div><div class="v">' + escapeHtml(e.intergo || '—') + '</div></div>' +
+          '<div class="full"><div class="k">Comentarios adicionales</div><div class="v">' + escapeHtml(e.comentarios || '—') + '</div></div>' +
           '<div><div class="k">Registrado</div><div class="v">' + escapeHtml(formatDateTime(e.createdAt)) + '</div></div>' +
         '</div>' +
         '<button type="button" class="detailEditBtn" id="btnEditFromDetail">Editar este registro</button>';
@@ -587,6 +553,7 @@
         '<td>' + escapeHtml(e.conexion || '—') + '</td>' +
         '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
         '<td>' + escapeHtml(e.intergo || '—') + '</td>' +
+        '<td>' + escapeHtml(e.comentarios || '—') + '</td>' +
         '<td>' + escapeHtml(e.instalacion || '—') + '</td>' +
         '<td>' + escapeHtml(formatDateTime(e.createdAt)) + '</td>' +
         '<td class="actionsCell">' +
@@ -598,7 +565,7 @@
     return '<div class="tableScroll"><table class="recordsTable">' +
       '<thead><tr>' +
         '<th>Hab.</th><th>Ubicación</th><th>Marca</th><th>Modelo</th><th>Serial</th>' +
-        '<th>Conexión</th><th>Periféricos</th><th>InterGO+</th><th>Instalación</th><th>Registrado</th><th></th>' +
+        '<th>Conexión</th><th>Periféricos</th><th>InterGO+</th><th>Comentarios</th><th>Instalación</th><th>Registrado</th><th></th>' +
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table></div>';
@@ -659,8 +626,7 @@
     if (els.instal) els.instal.value = e.instalacion || 'Base fija';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
-    if (els.qr) els.qr.value = '';
-    if (els.qrPreview) els.qrPreview.classList.remove('show', 'warn');
+    if (els.comentarios) els.comentarios.value = e.comentarios || ''; // Cargar comentarios
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -736,6 +702,7 @@
       conexion: els.conexion ? els.conexion.value : '',
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
+      comentarios: els.comentarios ? els.comentarios.value.trim() : '', // Enviar comentarios
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -799,7 +766,7 @@
       return;
     }
     try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', 'Tipo de conexión', '¿Reconoce los periféricos?', 'InterGO+', 'Tipo de instalación', 'Fecha y hora de registro'];
+      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', 'Tipo de conexión', '¿Reconoce los periféricos?', 'InterGO+', 'Comentarios adicionales', 'Tipo de instalación', 'Fecha y hora de registro'];
       const rows = state.entries
         .slice()
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
@@ -812,6 +779,7 @@
           e.conexion || '',
           e.perifericos || '',
           e.intergo || '',
+          e.comentarios || '', // Incluido en exportación
           e.instalacion || '',
           formatDateTime(e.createdAt)
         ]);

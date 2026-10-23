@@ -49,6 +49,7 @@ def init_db():
                 instalacion   TEXT,
                 conexion      TEXT,
                 intergo       TEXT,
+                comentarios   TEXT,
                 createdat     BIGINT NOT NULL
             )
             """
@@ -68,6 +69,7 @@ def init_db():
                 instalacion   TEXT,
                 conexion      TEXT,
                 intergo       TEXT,
+                comentarios   TEXT,
                 createdat     INTEGER NOT NULL
             )
             """
@@ -76,6 +78,7 @@ def init_db():
     if DATABASE_URL:
         cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS conexion TEXT")
         cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS intergo TEXT")
+        cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS comentarios TEXT")
     else:
         cursor.execute("PRAGMA table_info(tvs)")
         columns = [row[1] for row in cursor.fetchall()]
@@ -83,6 +86,8 @@ def init_db():
             cursor.execute("ALTER TABLE tvs ADD COLUMN conexion TEXT")
         if "intergo" not in columns:
             cursor.execute("ALTER TABLE tvs ADD COLUMN intergo TEXT")
+        if "comentarios" not in columns:
+            cursor.execute("ALTER TABLE tvs ADD COLUMN comentarios TEXT")
             
     conn.commit()
     cursor.close()
@@ -99,6 +104,7 @@ FIELDS = [
     "perifericos",
     "conexion",
     "intergo",
+    "comentarios",
     "instalacion",
 ]
 

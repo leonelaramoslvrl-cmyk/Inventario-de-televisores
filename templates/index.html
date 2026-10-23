@@ -29,7 +29,7 @@
       </button>
       <div>
         <h1>Inventario de televisores</h1>
-        <div class="sub">Registra cada TV desde el sitio: dicta habitación y pega el texto del código QR para tomar modelo y serial.</div>
+        <div class="sub">Registra cada TV desde el sitio: dicta habitación y usa la cámara o foto del QR para tomar modelo y serial.</div>
       </div>
     </div>
   </header>
@@ -103,11 +103,10 @@
       </div>
     </div>
 
-    <!-- Subir código QR lado a lado -->
     <div class="row2">
       <div class="field">
         <label>Subir código QR</label>
-        <button type="button" class="btnGhost" id="btnOpenCamera">Usar la cámara</button>
+        <button type="button" class="btnGhost" id="btnOpenCamera">📷 Abrir cámara</button>
       </div>
       <div class="field">
         <label>&nbsp;</label>
@@ -116,7 +115,6 @@
     </div>
     <div class="parsePreview" id="qrPhotoStatus"></div>
 
-    <!-- Modelo y Serial ahora colocados antes de pegar el texto -->
     <div class="row2">
       <div class="field">
         <label for="fModelo">Modelo</label>
@@ -129,11 +127,10 @@
       </div>
     </div>
 
-    <!-- Campo para pegar el texto del QR -->
+    <!-- Nuevo campo de Comentarios adicionales -->
     <div class="field">
-      <label for="fQr">O pega aquí el texto del código QR</label>
-      <textarea id="fQr" placeholder="MN : UN50RU7100PXPA&#10;SN : 08EJ3CXMC00489A&#10;..."></textarea>
-      <div class="parsePreview" id="qrPreview"></div>
+      <label for="fComentarios">Comentarios adicionales</label>
+      <textarea id="fComentarios" placeholder="Observaciones o notas sobre este televisor..."></textarea>
     </div>
 
     <button type="button" class="btnPrimary" id="btnAdd">Agregar registro</button>
