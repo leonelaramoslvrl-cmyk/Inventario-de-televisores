@@ -261,12 +261,12 @@
   function resetForm(keepRoom) {
     if (!keepRoom) {
       if (els.room) els.room.value = '';
-      if (els.ubic) els.ubic.value = 'Habitación';
+      if (els.ubic) els.ubic.value = '';
       if (els.marca) {
         els.marca.querySelectorAll('option[data-extra]').forEach(o => o.remove());
-        els.marca.value = 'Samsung';
+        els.marca.value = '';
       }
-      if (els.instal) els.instal.value = 'Base fija';
+      if (els.instal) els.instal.value = '';
     }
     if (els.modelo) els.modelo.value = '';
     if (els.serial) els.serial.value = '';
@@ -613,17 +613,17 @@
     if (!e) return;
     state.editingId = id;
     if (els.room) els.room.value = e.room;
-    if (els.ubic) els.ubic.value = e.ubicacion || 'Habitación';
+    if (els.ubic) els.ubic.value = e.ubicacion || '';
     if (els.marca) {
-      const marca = e.marca || 'Samsung';
-      if (!Array.from(els.marca.options).some(o => o.value === marca)) {
+      const marca = e.marca || '';
+      if (marca && !Array.from(els.marca.options).some(o => o.value === marca)) {
         const extra = new Option(marca, marca);
         extra.dataset.extra = '1';
         els.marca.add(extra);
       }
       els.marca.value = marca;
     }
-    if (els.instal) els.instal.value = e.instalacion || 'Base fija';
+    if (els.instal) els.instal.value = e.instalacion || '';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
     if (els.comentarios) els.comentarios.value = e.comentarios || ''; // Cargar comentarios
@@ -745,55 +745,16 @@
     btnAnother.addEventListener('click', () => addOrUpdateEntry(true));
   }
 
-  // ---------- Exportación a Excel ----------
-  function downloadCsvFallback(headers, rows) {
-    const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const csv = '\ufeff' + [headers].concat(rows).map(r => r.map(esc).join(',')).join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Inventario_TVs.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
+  // ---------- Exportación a Excel vía Servidor ----------
   async function exportToExcel() {
     if (!state.entries.length) {
       showToast('Todavía no hay registros para exportar.');
       return;
     }
     try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', 'Tipo de conexión', '¿Reconoce los periféricos?', 'InterGO+', 'Comentarios adicionales', 'Tipo de instalación', 'Fecha y hora de registro'];
-      const rows = state.entries
-        .slice()
-        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
-        .map(e => [
-          e.room,
-          e.ubicacion || '',
-          e.marca || '',
-          e.modelo || '',
-          e.serial || '',
-          e.conexion || '',
-          e.perifericos || '',
-          e.intergo || '',
-          e.comentarios || '', // Incluido en exportación
-          e.instalacion || '',
-          formatDateTime(e.createdAt)
-        ]);
-
-      if (typeof XLSX !== 'undefined') {
-        const worksheet = XLSX.utils.aoa_to_sheet([headers].concat(rows));
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Registros_TVs');
-        XLSX.writeFile(workbook, 'Inventario_TVs.xlsx');
-        showToast('Archivo Excel generado.');
-      } else {
-        downloadCsvFallback(headers, rows);
-        showToast('No cargó la librería de Excel. Se descargó un CSV que puedes abrir con Excel.');
-      }
+      // Redirige al endpoint de Flask que genera y descarga el Excel con openpyxl estilizado
+      window.location.href = '/api/tvs/export';
+      showToast('Generando archivo Excel profesional...');
     } catch (err) {
       showToast('Error al intentar exportar.');
     }
