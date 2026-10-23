@@ -51,11 +51,11 @@
       </div>
       <div class="field">
         <label for="fUbic">Ubicación</label>
-        <select id="fUbic">
+        <select id="fUbic" required>
+          <option value="" disabled selected hidden>Seleccionar</option>
           <option value="Habitación">Habitación</option>
           <option value="Habitación complementaria">Habitación Secundaria</option> 
           <option value="Sala">Sala</option>
-          
         </select>
       </div>
     </div>
@@ -63,14 +63,16 @@
     <div class="row2">
       <div class="field">
         <label for="fMarca">Marca</label>
-        <select id="fMarca">
+        <select id="fMarca" required>
+          <option value="" disabled selected hidden>Seleccionar</option>
           <option value="Samsung">Samsung</option>
           <option value="LG">LG</option>
         </select>
       </div>
       <div class="field">
         <label for="fInstal">Tipo de instalación</label>
-        <select id="fInstal">
+        <select id="fInstal" required>
+          <option value="" disabled selected hidden>Seleccionar</option>
           <option value="Base fija">Base fija</option>
           <option value="Base movible">Base movible</option>
           <option value="Escritorio/Mueble">Escritorio/Mueble</option>
@@ -80,8 +82,8 @@
 
     <div class="field">
       <label for="fConexion">Tipo de conexión</label>
-      <select id="fConexion">
-        <option value="" disabled selected hidden> <p style="color: gray;">Seleccionar</p></option>
+      <select id="fConexion" required>
+        <option value="" disabled selected hidden>Seleccionar</option>
         <option value="Inalámbrica">Inalámbrica</option>
         <option value="Cableado">Cableada</option>
       </select>

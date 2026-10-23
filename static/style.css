@@ -75,7 +75,7 @@
     width: 100%;
 }
 th, td {
-    border: 1px solid #ddd; /* Líneas divisorias entre celdas */
+    border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
 }
@@ -159,7 +159,12 @@ th {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
   }
+  /* Estilo para poner el texto placeholder de los selects en gris */
+  select:invalid, select option[value=""] {
+    color: #888888;
+  }
   select {
+    color: var(--text);
     background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
     background-position: calc(100% - 18px) center, calc(100% - 13px) center;
     background-size: 5px 5px, 5px 5px;

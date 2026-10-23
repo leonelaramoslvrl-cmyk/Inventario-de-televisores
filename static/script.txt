@@ -9,10 +9,9 @@
     marca: $('fMarca'),
     conexion: $('fConexion'),
     instal: $('fInstal'),
-    qr: $('fQr'),
     modelo: $('fModelo'),
     serial: $('fSerial'),
-    qrPreview: $('qrPreview'),
+    comentarios: $('fComentarios'), // Campo de comentarios
     btnAdd: $('btnAdd'),
     btnCancelEdit: $('btnCancelEdit'),
     qrPhoto: $('fQrPhoto'),
@@ -28,6 +27,7 @@
     toast: $('toast'),
     banner: $('dbBanner'),
     perifSeg: $('perifSeg'),
+    intergoSeg: $('intergoSeg'),
     floorSearch: $('fFloorSearch'),
     btnOpenMenu: $('btnOpenMenu'),
     btnCloseMenu: $('btnCloseMenu'),
@@ -37,6 +37,7 @@
   };
 
   let perifValue = null;
+  let intergoValue = null;
 
   if (els.micRoom) {
     els.micRoom.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
@@ -93,6 +94,16 @@
     });
   }
 
+  // ---------- Control Segmentado: InterGO+ ----------
+  if (els.intergoSeg) {
+    els.intergoSeg.querySelectorAll('.segBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        intergoValue = btn.dataset.val;
+        els.intergoSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b === btn));
+      });
+    });
+  }
+
   // ---------- Lectura y procesamiento de QR ----------
   function parseQr(text) {
     const mn = text.match(/\bMN\s*:\s*([^\s]+)/i) || text.match(/\bMODEL\s*:\s*([^\s]+)/i);
@@ -104,32 +115,11 @@
   }
 
   function applyQrText(text) {
-    if (els.qr) els.qr.value = text;
-    updateQrPreviewFromText(text);
-  }
-
-  function updateQrPreviewFromText(text) {
-    if (!els.qrPreview) return;
-    if (!text.trim()) { 
-      els.qrPreview.classList.remove('show', 'warn'); 
-      return; 
-    }
     const { modelo, serial } = parseQr(text);
     if (modelo && els.modelo) els.modelo.value = modelo;
     if (serial && els.serial) els.serial.value = serial;
-    
-    els.qrPreview.classList.add('show');
-    if (modelo || serial) {
-      els.qrPreview.classList.remove('warn');
-      els.qrPreview.innerHTML = 'Detectado — Modelo: <b>' + (modelo || '—') + '</b> · Serial: <b>' + (serial || '—') + '</b>';
-    } else {
-      els.qrPreview.classList.add('warn');
-      els.qrPreview.innerHTML = '<b>No encontré "MN" ni "SN"</b> en ese texto. Completa Modelo y Serial manualmente.';
-    }
     validate();
   }
-
-  if (els.qr) els.qr.addEventListener('input', () => updateQrPreviewFromText(els.qr.value));
 
   // ---------- Escáner de cámara en directo usando ZXing ----------
   let codeReader = null; 
@@ -145,16 +135,10 @@
   function stopCamera() {
     isScanning = false;
     if (codeReader) {
-      try {
-        codeReader.reset();
-      } catch (e) {}
+      try { codeReader.reset(); } catch (e) {}
     }
-    if (els.cameraVideo) {
-      els.cameraVideo.srcObject = null;
-    }
-    if (els.cameraOverlay) {
-      els.cameraOverlay.classList.remove('show');
-    }
+    if (els.cameraVideo) { els.cameraVideo.srcObject = null; }
+    if (els.cameraOverlay) { els.cameraOverlay.classList.remove('show'); }
   }
 
   function openCamera() {
@@ -178,16 +162,10 @@
       els.cameraVideo,
       (result, err) => {
         if (!isScanning) return;
-        
         if (result) {
-          const decodedText = result.getText();
-          applyQrText(decodedText);
+          applyQrText(result.getText());
           setPhotoStatus('Código QR leído con la cámara ✓', false);
-          
-          if (navigator.vibrate) {
-            navigator.vibrate(200);
-          }
-
+          if (navigator.vibrate) navigator.vibrate(200);
           stopCamera();
           showToast('Código QR leído correctamente.');
         }
@@ -290,17 +268,18 @@
       }
       if (els.instal) els.instal.value = 'Base fija';
     }
-    if (els.qr) els.qr.value = '';
     if (els.modelo) els.modelo.value = '';
     if (els.serial) els.serial.value = '';
-    if (els.qrPreview) els.qrPreview.classList.remove('show', 'warn');
+    if (els.comentarios) els.comentarios.value = ''; // Limpiar comentarios
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
       els.qrPhotoStatus.textContent = '';
     }
     perifValue = null;
+    intergoValue = null;
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.remove('active'));
+    if (els.intergoSeg) els.intergoSeg.querySelectorAll('.segBtn').forEach(b => b.classList.remove('active'));
     if (els.conexion) els.conexion.value = '';
     state.editingId = null;
     if (els.btnAdd) els.btnAdd.textContent = 'Agregar registro';
@@ -452,8 +431,7 @@
   function matchesQuery(e, rawQuery) {
     const q = normalizeText(rawQuery).trim();
     if (!q) return true;
-    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion].join(' '));
-    // Todas las palabras escritas deben aparecer (ej. "351 samsung")
+    const haystack = normalizeText([e.room, e.ubicacion, e.marca, e.modelo, e.serial, e.instalacion, e.conexion, e.intergo, e.comentarios].join(' '));
     return q.split(/\s+/).every(word => haystack.includes(word));
   }
 
@@ -528,8 +506,10 @@
           '<div><div class="k">Tipo de instalación</div><div class="v">' + escapeHtml(e.instalacion || '—') + '</div></div>' +
           '<div class="full"><div class="k">Modelo</div><div class="v">' + escapeHtml(e.modelo || '—') + '</div></div>' +
           '<div class="full"><div class="k">Serial</div><div class="v">' + escapeHtml(e.serial || '—') + '</div></div>' +
-          '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
           '<div><div class="k">Tipo de conexión</div><div class="v">' + escapeHtml(e.conexion || '—') + '</div></div>' +
+          '<div><div class="k">¿Reconoce periféricos?</div><div class="v">' + escapeHtml(e.perifericos || '—') + '</div></div>' +
+          '<div><div class="k">InterGO+ instalado</div><div class="v">' + escapeHtml(e.intergo || '—') + '</div></div>' +
+          '<div class="full"><div class="k">Comentarios adicionales</div><div class="v">' + escapeHtml(e.comentarios || '—') + '</div></div>' +
           '<div><div class="k">Registrado</div><div class="v">' + escapeHtml(formatDateTime(e.createdAt)) + '</div></div>' +
         '</div>' +
         '<button type="button" class="detailEditBtn" id="btnEditFromDetail">Editar este registro</button>';
@@ -570,8 +550,10 @@
         '<td>' + escapeHtml(e.marca || '—') + '</td>' +
         '<td class="mono">' + escapeHtml(e.modelo || '—') + '</td>' +
         '<td class="mono">' + escapeHtml(e.serial || '—') + '</td>' +
-        '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
         '<td>' + escapeHtml(e.conexion || '—') + '</td>' +
+        '<td>' + escapeHtml(e.perifericos || '—') + '</td>' +
+        '<td>' + escapeHtml(e.intergo || '—') + '</td>' +
+        '<td>' + escapeHtml(e.comentarios || '—') + '</td>' +
         '<td>' + escapeHtml(e.instalacion || '—') + '</td>' +
         '<td>' + escapeHtml(formatDateTime(e.createdAt)) + '</td>' +
         '<td class="actionsCell">' +
@@ -583,7 +565,7 @@
     return '<div class="tableScroll"><table class="recordsTable">' +
       '<thead><tr>' +
         '<th>Hab.</th><th>Ubicación</th><th>Marca</th><th>Modelo</th><th>Serial</th>' +
-        '<th>Periféricos</th><th>Conexión</th><th>Instalación</th><th>Registrado</th><th></th>' +
+        '<th>Conexión</th><th>Periféricos</th><th>InterGO+</th><th>Comentarios</th><th>Instalación</th><th>Registrado</th><th></th>' +
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table></div>';
@@ -644,8 +626,7 @@
     if (els.instal) els.instal.value = e.instalacion || 'Base fija';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
-    if (els.qr) els.qr.value = '';
-    if (els.qrPreview) els.qrPreview.classList.remove('show', 'warn');
+    if (els.comentarios) els.comentarios.value = e.comentarios || ''; // Cargar comentarios
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -654,6 +635,10 @@
     
     perifValue = e.perifericos === 'Sí' ? 'si' : (e.perifericos === 'No' ? 'no' : null);
     if (els.perifSeg) els.perifSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b.dataset.val === perifValue));
+
+    intergoValue = e.intergo === 'Sí' ? 'si' : (e.intergo === 'No' ? 'no' : null);
+    if (els.intergoSeg) els.intergoSeg.querySelectorAll('.segBtn').forEach(b => b.classList.toggle('active', b.dataset.val === intergoValue));
+
     if (els.conexion) els.conexion.value = e.conexion || '';
     
     if (els.btnAdd) els.btnAdd.textContent = 'Guardar cambios';
@@ -714,8 +699,10 @@
       ubicacion: els.ubic.value,
       marca: els.marca.value.trim(),
       instalacion: els.instal.value,
-      perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       conexion: els.conexion ? els.conexion.value : '',
+      perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
+      intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
+      comentarios: els.comentarios ? els.comentarios.value.trim() : '', // Enviar comentarios
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -761,7 +748,6 @@
   // ---------- Exportación a Excel ----------
   function downloadCsvFallback(headers, rows) {
     const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    // BOM \ufeff para que Excel muestre bien tildes y ñ
     const csv = '\ufeff' + [headers].concat(rows).map(r => r.map(esc).join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -780,7 +766,7 @@
       return;
     }
     try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', '¿Reconoce los periféricos?', 'Tipo de conexión', 'Tipo de instalación', 'Fecha y hora de registro'];
+      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', 'Tipo de conexión', '¿Reconoce los periféricos?', 'InterGO+', 'Comentarios adicionales', 'Tipo de instalación', 'Fecha y hora de registro'];
       const rows = state.entries
         .slice()
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
@@ -790,8 +776,10 @@
           e.marca || '',
           e.modelo || '',
           e.serial || '',
-          e.perifericos || '',
           e.conexion || '',
+          e.perifericos || '',
+          e.intergo || '',
+          e.comentarios || '', // Incluido en exportación
           e.instalacion || '',
           formatDateTime(e.createdAt)
         ]);
@@ -803,7 +791,6 @@
         XLSX.writeFile(workbook, 'Inventario_TVs.xlsx');
         showToast('Archivo Excel generado.');
       } else {
-        // La librería de Excel se carga desde internet; si no cargó, se baja un CSV que Excel también abre.
         downloadCsvFallback(headers, rows);
         showToast('No cargó la librería de Excel. Se descargó un CSV que puedes abrir con Excel.');
       }
