@@ -62,7 +62,6 @@ def init_db():
             """
         )
     else:
-        DB_PATH = os.path.join(BASE_DIR, "inventario.db")
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS tvs (
@@ -173,7 +172,7 @@ def export_excel():
     # Fondo blanco uniforme para todas las filas
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     
-    # Border delgado y limpio para definir las celdas
+    # Borde delgado y limpio para definir las celdas
     thin_border = Border(
         left=Side(style='thin', color='D7DEE7'),
         right=Side(style='thin', color='D7DEE7'),
@@ -181,19 +180,20 @@ def export_excel():
         bottom=Side(style='thin', color='D7DEE7')
     )
 
+    # Alineación centrada para todos los datos
     align_center = Alignment(horizontal="center", vertical="center")
-    align_left = Alignment(horizontal="left", vertical="center")
+    align_center_wrap = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # Aplicar estilos a encabezados
+    # Estilo del encabezado (centrado)
     ws.row_dimensions[1].height = 26
-    for col_num, _ in enumerate(headers, 1):
+    for col_num in range(1, len(headers) + 1):
         cell = ws.cell(row=1, column=col_num)
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = align_center
         cell.border = thin_border
 
-    # Cargar los datos
+    # Cargar datos
     for row_idx, r in enumerate(rows, start=2):
         item = row_to_dict(r)
         row_data = [
@@ -210,30 +210,36 @@ def export_excel():
             format_datetime(item.get("createdAt"))
         ]
         ws.append(row_data)
-        ws.row_dimensions[row_idx].height = 21
+        ws.row_dimensions[row_idx].height = 22  # Altura cómoda de fila
 
-        # Formatear celdas de la fila (Fondo blanco + bordes delgados)
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(row=row_idx, column=col_idx)
             cell.fill = white_fill
             cell.border = thin_border
             cell.font = Font(name="Calibri", size=10)
             
-            # Centrar campos de selección y código, alinear texto largo a la izquierda
-            if col_idx in [1, 2, 3, 6, 7, 8, 10, 11]:
-                cell.alignment = align_center
+            # Si es la columna de Comentarios adicionales (columna 9 / I), permitir ajuste de texto
+            if col_idx == 9:
+                cell.alignment = align_center_wrap
             else:
-                cell.alignment = align_left
+                cell.alignment = align_center
 
-    # Ajuste automático del ancho de columnas
+    # Autoajuste de columnas sin espacio sobrante a los lados
     for col in ws.columns:
-        max_len = 0
         col_letter = get_column_letter(col[0].column)
-        for cell in col:
-            val_str = str(cell.value or '')
-            if len(val_str) > max_len:
-                max_len = len(val_str)
-        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+        col_idx = col[0].column
+        
+        # Para Comentarios adicionales (Columna 9 / I), fijar un ancho máximo limpio de 35
+        if col_idx == 9:
+            ws.column_dimensions[col_letter].width = 35
+        else:
+            max_len = 0
+            for cell in col:
+                val_str = str(cell.value or '')
+                if len(val_str) > max_len:
+                    max_len = len(val_str)
+            # Ancho ajustado exactamente al contenido sin márgenes gigantes
+            ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
 
     # Crear respuesta para descarga directa en el navegador
     output = io.BytesIO()
