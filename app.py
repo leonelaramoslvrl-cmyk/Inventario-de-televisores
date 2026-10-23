@@ -147,32 +147,62 @@ def list_tvs():
 def export_excel():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM tvs ORDER BY createdat ASC")
+    cursor.execute("SELECT * FROM tvs")
     rows = cursor.fetchall()
     cursor.close()
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Inventario TV"
+    items = [row_to_dict(r) for r in rows]
 
-    # Mostrar líneas de cuadrícula en Excel
-    ws.views.sheetView[0].showGridLines = True
+    def get_tower(room_raw):
+        room = str(room_raw).strip().upper()
+        if not room.isdigit():
+            return "Hotel"
+        n = int(room)
+        if 6051 <= n <= 6069 or 6151 <= n <= 6170:
+            return "Suite"
+        if 100 <= n < 1200:
+            floor_num = n // 100
+            remainder = n % 100
+            if 1 <= floor_num <= 11:
+                return "Hotel" if remainder <= 50 else "Suite"
+        return "Hotel"
+
+    hotel_items = []
+    suite_items = []
+    other_items = []
+
+    for item in items:
+        tower = get_tower(item.get("room", ""))
+        if tower == "Hotel":
+            hotel_items.append(item)
+        elif tower == "Suite":
+            suite_items.append(item)
+        else:
+            other_items.append(item)
+
+    def room_sort_key(x):
+        try:
+            return (0, int(x.get("room", "0")))
+        except ValueError:
+            return (1, x.get("room", ""))
+
+    hotel_items.sort(key=room_sort_key)
+    suite_items.sort(key=room_sort_key)
+    other_items.sort(key=room_sort_key)
+
+    wb = openpyxl.Workbook()
+    default_sheet = wb.active
 
     headers = [
         "Num. Hab.", "Ubicación", "Marca", "Modelo", "Serial",
         "Tipo de conexión", "¿Reconoce periféricos?", "InterGO+",
         "Comentarios adicionales", "Tipo de instalación", "Fecha y hora"
     ]
-    ws.append(headers)
 
-    # Estilos visuales
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="366690", end_color="366690", fill_type="solid")
-    
-    # Fondo blanco uniforme para todas las filas
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     
-    # Borde delgado y limpio para definir las celdas
     thin_border = Border(
         left=Side(style='thin', color='D7DEE7'),
         right=Side(style='thin', color='D7DEE7'),
@@ -180,68 +210,85 @@ def export_excel():
         bottom=Side(style='thin', color='D7DEE7')
     )
 
-    # Alineación centrada para todos los datos
     align_center = Alignment(horizontal="center", vertical="center")
     align_center_wrap = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # Estilo del encabezado (centrado)
-    ws.row_dimensions[1].height = 26
-    for col_num in range(1, len(headers) + 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = align_center
-        cell.border = thin_border
-
-    # Cargar datos
-    for row_idx, r in enumerate(rows, start=2):
-        item = row_to_dict(r)
-        row_data = [
-            item.get("room", ""),
-            item.get("ubicacion", ""),
-            item.get("marca", ""),
-            item.get("modelo", ""),
-            item.get("serial", ""),
-            item.get("conexion", ""),
-            item.get("perifericos", ""),
-            item.get("intergo", ""),
-            item.get("comentarios", ""),
-            item.get("instalacion", ""),
-            format_datetime(item.get("createdAt"))
-        ]
-        ws.append(row_data)
-        ws.row_dimensions[row_idx].height = 22  # Altura cómoda de fila
-
-        for col_idx in range(1, len(headers) + 1):
-            cell = ws.cell(row=row_idx, column=col_idx)
-            cell.fill = white_fill
-            cell.border = thin_border
-            cell.font = Font(name="Calibri", size=10)
-            
-            # Si es la columna de Comentarios adicionales (columna 9 / I), permitir ajuste de texto
-            if col_idx == 9:
-                cell.alignment = align_center_wrap
-            else:
-                cell.alignment = align_center
-
-    # Autoajuste de columnas sin espacio sobrante a los lados
-    for col in ws.columns:
-        col_letter = get_column_letter(col[0].column)
-        col_idx = col[0].column
+    def populate_sheet(ws, data_list):
+        ws.views.sheetView[0].showGridLines = True
+        ws.append(headers)
+        ws.row_dimensions[1].height = 26
         
-        # Para Comentarios adicionales (Columna 9 / I), fijar un ancho máximo limpio de 35
-        if col_idx == 9:
-            ws.column_dimensions[col_letter].width = 35
-        else:
-            max_len = 0
-            for cell in col:
-                val_str = str(cell.value or '')
-                if len(val_str) > max_len:
-                    max_len = len(val_str)
-            # Ancho ajustado exactamente al contenido sin márgenes gigantes
-            ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+        for col_num in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = align_center
+            cell.border = thin_border
 
-    # Crear respuesta para descarga directa en el navegador
+        for row_idx, item in enumerate(data_list, start=2):
+            row_data = [
+                item.get("room", ""),
+                item.get("ubicacion", ""),
+                item.get("marca", ""),
+                item.get("modelo", ""),
+                item.get("serial", ""),
+                item.get("conexion", ""),
+                item.get("perifericos", ""),
+                item.get("intergo", ""),
+                item.get("comentarios", ""),
+                item.get("instalacion", ""),
+                format_datetime(item.get("createdAt"))
+            ]
+            ws.append(row_data)
+            ws.row_dimensions[row_idx].height = 22
+
+            for col_idx in range(1, len(headers) + 1):
+                cell = ws.cell(row=row_idx, column=col_idx)
+                cell.fill = white_fill
+                cell.border = thin_border
+                cell.font = Font(name="Calibri", size=10)
+                
+                if col_idx == 9:
+                    cell.alignment = align_center_wrap
+                else:
+                    cell.alignment = align_center
+
+        for col in ws.columns:
+            col_letter = get_column_letter(col[0].column)
+            col_idx = col[0].column
+            if col_idx == 9:
+                ws.column_dimensions[col_letter].width = 35
+            else:
+                max_len = 0
+                for cell in col:
+                    val_str = str(cell.value or '')
+                    if len(val_str) > max_len:
+                        max_len = len(val_str)
+                ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+
+    is_first = True
+    if hotel_items:
+        ws_hotel = wb.active if is_first else wb.create_sheet(title="Torre Hotel")
+        ws_hotel.title = "Torre Hotel"
+        populate_sheet(ws_hotel, hotel_items)
+        is_first = False
+
+    if suite_items:
+        ws_suite = wb.active if is_first else wb.create_sheet(title="Torre Suite")
+        ws_suite.title = "Torre Suite"
+        populate_sheet(ws_suite, suite_items)
+        is_first = False
+
+    if other_items:
+        ws_other = wb.active if is_first else wb.create_sheet(title="Otros")
+        ws_other.title = "Otros"
+        populate_sheet(ws_other, other_items)
+        is_first = False
+
+    if not hotel_items and not suite_items and not other_items:
+        default_sheet.title = "Inventario TV"
+        populate_sheet(default_sheet, [])
+
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
