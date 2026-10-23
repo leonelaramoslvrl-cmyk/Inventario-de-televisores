@@ -29,7 +29,7 @@
       </button>
       <div>
         <h1>Inventario de televisores</h1>
-        <div class="sub">Registra cada TV desde el sitio: dicta habitación y usa la cámara o foto del QR para tomar modelo y serial.</div>
+        <div class="sub">Registra cada TV desde el sitio: dicta el número de la habitación y usa la cámara o subue una foto del QR para tomar modelo y serial.</div>
       </div>
     </div>
   </header>
@@ -53,8 +53,9 @@
         <label for="fUbic">Ubicación</label>
         <select id="fUbic">
           <option value="Habitación">Habitación</option>
+          <option value="Habitación complementaria">Habitación Secundaria</option> 
           <option value="Sala">Sala</option>
-          <option value="Habitación complementaria">Habitación Secundaria</option>
+          
         </select>
       </div>
     </div>
@@ -80,7 +81,7 @@
     <div class="field">
       <label for="fConexion">Tipo de conexión</label>
       <select id="fConexion">
-        <option value="" disabled selected hidden>Seleccionar</option>
+        <option value="" disabled selected hidden> <p style="color: gray;">Seleccionar</p></option>
         <option value="Inalámbrica">Inalámbrica</option>
         <option value="Cableado">Cableada</option>
       </select>
