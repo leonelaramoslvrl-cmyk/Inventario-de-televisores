@@ -4,10 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# Configuración de PostgreSQL (Reemplaza 'tu_contraseña' con la tuya)
+# Configuracion de PostgreSQL (Reemplaza 'tu_contrasena' con la tuya)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     'DATABASE_URL', 
-    'postgresql://postgres:tu_contraseña@localhost:5432/inventario_tv'
+    'postgresql://postgres:1234567@localhost:5432/inventario_tv'
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
