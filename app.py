@@ -49,6 +49,10 @@ class TVInventario(db.Model):
             'createdAt': self.createdAt
         }
 
+# Asegurar que las tablas se creen tanto en local como con Gunicorn en Render
+with app.app_context():
+    db.create_all()
+
 # Ruta principal que carga tu interfaz (index.html)
 @app.route('/')
 def index():
@@ -115,6 +119,4 @@ def update_tv(tv_id):
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Crea las tablas en PostgreSQL automáticamente si no existen
     app.run(debug=True, host='0.0.0.0', port=5000)
