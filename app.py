@@ -1,14 +1,17 @@
+# -*- coding: utf-8 -*-
 import os
 from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# Configuracion de PostgreSQL (Reemplaza 'tu_contrasena' con la tuya)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'DATABASE_URL', 
-    'postgresql://postgres:1234567@localhost:5432/inventario_tv'
-)
+# Configuracion de PostgreSQL (Compatible con entorno local y Render)
+database_url = os.getenv('DATABASE_URL')
+
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'postgresql://postgres:1234567@localhost:5432/inventario_tv'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
