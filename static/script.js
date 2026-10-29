@@ -11,7 +11,7 @@
     instal: $('fInstal'),
     modelo: $('fModelo'),
     serial: $('fSerial'),
-    comentarios: $('fComentarios'), // Campo de comentarios
+    comentarios: $('fComentarios'),
     btnAdd: $('btnAdd'),
     btnCancelEdit: $('btnCancelEdit'),
     qrPhoto: $('fQrPhoto'),
@@ -261,16 +261,16 @@
   function resetForm(keepRoom) {
     if (!keepRoom) {
       if (els.room) els.room.value = '';
-      if (els.ubic) els.ubic.value = '';
+      if (els.ubic) els.ubic.value = 'Habitación';
       if (els.marca) {
         els.marca.querySelectorAll('option[data-extra]').forEach(o => o.remove());
-        els.marca.value = '';
+        els.marca.value = 'Samsung';
       }
-      if (els.instal) els.instal.value = '';
+      if (els.instal) els.instal.value = 'Base fija';
     }
     if (els.modelo) els.modelo.value = '';
     if (els.serial) els.serial.value = '';
-    if (els.comentarios) els.comentarios.value = ''; // Limpiar comentarios
+    if (els.comentarios) els.comentarios.value = '';
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -613,20 +613,20 @@
     if (!e) return;
     state.editingId = id;
     if (els.room) els.room.value = e.room;
-    if (els.ubic) els.ubic.value = e.ubicacion || '';
+    if (els.ubic) els.ubic.value = e.ubicacion || 'Habitación';
     if (els.marca) {
-      const marca = e.marca || '';
-      if (marca && !Array.from(els.marca.options).some(o => o.value === marca)) {
+      const marca = e.marca || 'Samsung';
+      if (!Array.from(els.marca.options).some(o => o.value === marca)) {
         const extra = new Option(marca, marca);
         extra.dataset.extra = '1';
         els.marca.add(extra);
       }
       els.marca.value = marca;
     }
-    if (els.instal) els.instal.value = e.instalacion || '';
+    if (els.instal) els.instal.value = e.instalacion || 'Base fija';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
-    if (els.comentarios) els.comentarios.value = e.comentarios || ''; // Cargar comentarios
+    if (els.comentarios) els.comentarios.value = e.comentarios || '';
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -702,7 +702,7 @@
       conexion: els.conexion ? els.conexion.value : '',
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
-      comentarios: els.comentarios ? els.comentarios.value.trim() : '', // Enviar comentarios
+      comentarios: els.comentarios ? els.comentarios.value.trim() : '',
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -747,16 +747,24 @@
 
   // ---------- Exportación a Excel vía Servidor ----------
   async function exportToExcel() {
-    if (!state.entries.length) {
-      showToast('Todavía no hay registros para exportar.');
-      return;
-    }
     try {
-      // Redirige al endpoint de Flask que genera y descarga el Excel con openpyxl estilizado
-      window.location.href = '/api/tvs/export';
-      showToast('Generando archivo Excel profesional...');
+      showToast('Generando archivo Excel...');
+      const response = await fetch('/api/tvs/export');
+      if (!response.ok) throw new Error('Error al generar el archivo en el servidor');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Inventario_TVs.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      showToast('¡Archivo Excel descargado con éxito!');
     } catch (err) {
-      showToast('Error al intentar exportar.');
+      showToast('No se pudo descargar el archivo Excel.');
     }
   }
 
