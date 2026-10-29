@@ -11,7 +11,7 @@
     instal: $('fInstal'),
     modelo: $('fModelo'),
     serial: $('fSerial'),
-    comentarios: $('fComentarios'),
+    comentarios: $('fComentarios'), // Campo de comentarios
     btnAdd: $('btnAdd'),
     btnCancelEdit: $('btnCancelEdit'),
     qrPhoto: $('fQrPhoto'),
@@ -270,7 +270,7 @@
     }
     if (els.modelo) els.modelo.value = '';
     if (els.serial) els.serial.value = '';
-    if (els.comentarios) els.comentarios.value = '';
+    if (els.comentarios) els.comentarios.value = ''; // Limpiar comentarios
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -626,7 +626,7 @@
     if (els.instal) els.instal.value = e.instalacion || 'Base fija';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
-    if (els.comentarios) els.comentarios.value = e.comentarios || '';
+    if (els.comentarios) els.comentarios.value = e.comentarios || ''; // Cargar comentarios
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -702,7 +702,7 @@
       conexion: els.conexion ? els.conexion.value : '',
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
-      comentarios: els.comentarios ? els.comentarios.value.trim() : '',
+      comentarios: els.comentarios ? els.comentarios.value.trim() : '', // Enviar comentarios
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -745,27 +745,15 @@
     btnAnother.addEventListener('click', () => addOrUpdateEntry(true));
   }
 
-  // ---------- Exportación a Excel vía Servidor ----------
-  async function exportToExcel() {
-    try {
-      showToast('Generando archivo Excel...');
-      const response = await fetch('/api/tvs/export');
-      if (!response.ok) throw new Error('Error al generar el archivo en el servidor');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Inventario_TVs.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      
-      showToast('¡Archivo Excel descargado con éxito!');
-    } catch (err) {
-      showToast('No se pudo descargar el archivo Excel.');
+  // ---------- Exportación a Excel vía Servidor Directo ----------
+  function exportToExcel() {
+    if (!state.entries.length) {
+      showToast('Todavía no hay registros para exportar.');
+      return;
     }
+    showToast('Generando y descargando Excel...');
+    // Redirige directamente al endpoint del servidor Flask para descargar el archivo
+    window.location.href = '/api/tvs/export';
   }
 
   if (els.btnExport) els.btnExport.addEventListener('click', exportToExcel);
