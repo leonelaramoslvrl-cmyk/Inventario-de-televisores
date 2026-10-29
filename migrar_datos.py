@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""
 import sqlite3
 import os
 import psycopg2
@@ -111,3 +112,5 @@ print(f"\n==========================================")
 print(f"¡Migración completa!")
 print(f"Total de registros subidos a Render: {total_migrados}")
 print(f"==========================================")
+
+"""
