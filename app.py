@@ -12,7 +12,7 @@ except ImportError:
 
 import sqlite3
 
-# Librería para generar hojas de Excel profesionales
+# Librería para generar hojas de Excel
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -130,20 +130,33 @@ def row_to_dict(row) -> dict:
         d["createdAt"] = d["createdat"]
     return d
 
+def room_sort_key(x):
+    room_raw = x.get("room", "")
+    try:
+        return (0, int(str(room_raw).strip()))
+    except ValueError:
+        return (1, str(room_raw).strip())
+
 @app.route("/")
 def index():
     return render_template("index.html")
 
+# --- LISTADO ORDENADO ASCENDENTEMENTE POR HABITACIÓN ---
 @app.route("/api/tvs", methods=["GET"])
 def list_tvs():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM tvs ORDER BY createdat DESC")
+    cursor.execute("SELECT * FROM tvs")
     rows = cursor.fetchall()
     cursor.close()
-    return jsonify([row_to_dict(r) for r in rows])
+    
+    items = [row_to_dict(r) for r in rows]
+    # Ordenamiento ascendente de menor a mayor habitación
+    items.sort(key=room_sort_key)
+    
+    return jsonify(items)
 
-# --- RUTA DE EXPORTACIÓN A EXCEL ---
+# --- RUTA DE EXPORTACIÓN A EXCEL ESTÁNDAR ---
 @app.route("/api/tvs/export", methods=["GET"])
 def export_excel():
     try:
@@ -169,10 +182,7 @@ def export_excel():
                     return "Hotel" if remainder <= 50 else "Suite"
             return "Hotel"
 
-        hotel_items = []
-        suite_items = []
-        other_items = []
-
+        hotel_items, suite_items, other_items = [], [], []
         for item in items:
             tower = get_tower(item.get("room", ""))
             if tower == "Hotel":
@@ -181,12 +191,6 @@ def export_excel():
                 suite_items.append(item)
             else:
                 other_items.append(item)
-
-        def room_sort_key(x):
-            try:
-                return (0, int(x.get("room", "0")))
-            except ValueError:
-                return (1, x.get("room", ""))
 
         hotel_items.sort(key=room_sort_key)
         suite_items.sort(key=room_sort_key)
