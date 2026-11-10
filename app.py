@@ -113,7 +113,8 @@ def format_datetime(ts):
 def row_to_dict(row) -> dict:
     d = dict(row)
     d["id"] = str(d["id"])
-    d["createdAt"] = d.get("createdat") or d.get("createdAt") or 0
+    # Recupera la fecha sin importar cómo esté guardada en la base de datos
+    d["createdAt"] = d.get("createdat") or d.get("CREATEDAT") or d.get("createdAt") or 0
     return d
 
 def room_sort_key(x):
