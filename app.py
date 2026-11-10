@@ -45,56 +45,42 @@ def init_db():
     if DATABASE_URL:
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS tvs (
-                id            SERIAL PRIMARY KEY,
-                room          TEXT NOT NULL,
-                ubicacion     TEXT,
-                marca         TEXT,
-                modelo        TEXT NOT NULL,
-                serial        TEXT NOT NULL,
-                perifericos   TEXT,
-                instalacion   TEXT,
-                conexion      TEXT,
-                intergo       TEXT,
-                comentarios   TEXT,
-                createdat     BIGINT NOT NULL
+            CREATE TABLE IF NOT EXISTS tv_inventario (
+                id           SERIAL PRIMARY KEY,
+                room         TEXT NOT NULL,
+                ubicacion    TEXT,
+                marca        TEXT,
+                modelo       TEXT NOT NULL,
+                serial       TEXT NOT NULL,
+                perifericos  TEXT,
+                instalacion  TEXT,
+                conexion     TEXT,
+                intergo      TEXT,
+                comentarios  TEXT,
+                createdat    BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
             )
             """
         )
     else:
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS tvs (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
-                room          TEXT NOT NULL,
-                ubicacion     TEXT,
-                marca         TEXT,
-                modelo        TEXT NOT NULL,
-                serial        TEXT NOT NULL,
-                perifericos   TEXT,
-                instalacion   TEXT,
-                conexion      TEXT,
-                intergo       TEXT,
-                comentarios   TEXT,
-                createdat     INTEGER NOT NULL
+            CREATE TABLE IF NOT EXISTS tv_inventario (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                room         TEXT NOT NULL,
+                ubicacion    TEXT,
+                marca        TEXT,
+                modelo       TEXT NOT NULL,
+                serial       TEXT NOT NULL,
+                perifericos  TEXT,
+                instalacion  TEXT,
+                conexion     TEXT,
+                intergo      TEXT,
+                comentarios  TEXT,
+                createdat    INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
             )
             """
         )
     
-    if DATABASE_URL:
-        cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS conexion TEXT")
-        cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS intergo TEXT")
-        cursor.execute("ALTER TABLE tvs ADD COLUMN IF NOT EXISTS comentarios TEXT")
-    else:
-        cursor.execute("PRAGMA table_info(tvs)")
-        columns = [row[1] for row in cursor.fetchall()]
-        if "conexion" not in columns:
-            cursor.execute("ALTER TABLE tvs ADD COLUMN conexion TEXT")
-        if "intergo" not in columns:
-            cursor.execute("ALTER TABLE tvs ADD COLUMN intergo TEXT")
-        if "comentarios" not in columns:
-            cursor.execute("ALTER TABLE tvs ADD COLUMN comentarios TEXT")
-            
     conn.commit()
     cursor.close()
 
@@ -126,8 +112,7 @@ def format_datetime(ts):
 def row_to_dict(row) -> dict:
     d = dict(row)
     d["id"] = str(d["id"])
-    if "createdat" in d:
-        d["createdAt"] = d["createdat"]
+    d["createdAt"] = d.get("createdat") or d.get("createdAt") or 0
     return d
 
 def room_sort_key(x):
@@ -146,7 +131,7 @@ def index():
 def list_tvs():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM tvs")
+    cursor.execute("SELECT * FROM tv_inventario")
     rows = cursor.fetchall()
     cursor.close()
     
@@ -162,7 +147,7 @@ def export_excel():
     try:
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM tvs")
+        cursor.execute("SELECT * FROM tv_inventario")
         rows = cursor.fetchall()
         cursor.close()
 
@@ -338,20 +323,20 @@ def create_tv():
 
     if DATABASE_URL:
         cursor.execute(
-            f"INSERT INTO tvs ({columns_str}) VALUES ({placeholders}) RETURNING id",
+            f"INSERT INTO tv_inventario ({columns_str}) VALUES ({placeholders}) RETURNING id",
             [values[f] for f in FIELDS] + [created_at],
         )
         new_id = cursor.fetchone()["id"]
         db.commit()
-        cursor.execute("SELECT * FROM tvs WHERE id = %s", (new_id,))
+        cursor.execute("SELECT * FROM tv_inventario WHERE id = %s", (new_id,))
         new_row = cursor.fetchone()
     else:
         cursor.execute(
-            f"INSERT INTO tvs ({columns_str}) VALUES ({placeholders})",
+            f"INSERT INTO tv_inventario ({columns_str}) VALUES ({placeholders})",
             [values[f] for f in FIELDS] + [created_at],
         )
         db.commit()
-        cursor.execute("SELECT * FROM tvs WHERE id = ?", (cursor.lastrowid,))
+        cursor.execute("SELECT * FROM tv_inventario WHERE id = ?", (cursor.lastrowid,))
         new_row = cursor.fetchone()
 
     cursor.close()
@@ -365,7 +350,7 @@ def update_tv(tv_id):
     cursor = db.cursor()
     
     sel_ph = "%s" if DATABASE_URL else "?"
-    cursor.execute(f"SELECT * FROM tvs WHERE id = {sel_ph}", (tv_id,))
+    cursor.execute(f"SELECT * FROM tv_inventario WHERE id = {sel_ph}", (tv_id,))
     existing = cursor.fetchone()
     if existing is None:
         cursor.close()
@@ -387,12 +372,12 @@ def update_tv(tv_id):
     set_clause = ", ".join(f"{f} = {eq_ph}" for f in FIELDS)
     
     cursor.execute(
-        f"UPDATE tvs SET {set_clause} WHERE id = {eq_ph}",
+        f"UPDATE tv_inventario SET {set_clause} WHERE id = {eq_ph}",
         [values[f] for f in FIELDS] + [tv_id],
     )
     db.commit()
     
-    cursor.execute(f"SELECT * FROM tvs WHERE id = {sel_ph}", (tv_id,))
+    cursor.execute(f"SELECT * FROM tv_inventario WHERE id = {sel_ph}", (tv_id,))
     updated = cursor.fetchone()
     cursor.close()
     return jsonify(row_to_dict(updated))
