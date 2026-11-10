@@ -745,58 +745,15 @@
     btnAnother.addEventListener('click', () => addOrUpdateEntry(true));
   }
 
-  // ---------- Exportación a Excel ----------
-  function downloadCsvFallback(headers, rows) {
-    const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const csv = '\ufeff' + [headers].concat(rows).map(r => r.map(esc).join(',')).join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Inventario_TVs.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  async function exportToExcel() {
+  // ---------- Exportación a Excel vía Servidor Directo ----------
+  function exportToExcel() {
     if (!state.entries.length) {
       showToast('Todavía no hay registros para exportar.');
       return;
     }
-    try {
-      const headers = ['Num. Hab.', 'Ubicación', 'Marca', 'Modelo', 'Serial', 'Tipo de conexión', '¿Reconoce los periféricos?', 'InterGO+', 'Comentarios adicionales', 'Tipo de instalación', 'Fecha y hora de registro'];
-      const rows = state.entries
-        .slice()
-        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
-        .map(e => [
-          e.room,
-          e.ubicacion || '',
-          e.marca || '',
-          e.modelo || '',
-          e.serial || '',
-          e.conexion || '',
-          e.perifericos || '',
-          e.intergo || '',
-          e.comentarios || '', // Incluido en exportación
-          e.instalacion || '',
-          formatDateTime(e.createdAt)
-        ]);
-
-      if (typeof XLSX !== 'undefined') {
-        const worksheet = XLSX.utils.aoa_to_sheet([headers].concat(rows));
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Registros_TVs');
-        XLSX.writeFile(workbook, 'Inventario_TVs.xlsx');
-        showToast('Archivo Excel generado.');
-      } else {
-        downloadCsvFallback(headers, rows);
-        showToast('No cargó la librería de Excel. Se descargó un CSV que puedes abrir con Excel.');
-      }
-    } catch (err) {
-      showToast('Error al intentar exportar.');
-    }
+    showToast('Generando y descargando Excel...');
+    // Redirige directamente al endpoint del servidor Flask para descargar el archivo
+    window.location.href = '/api/tvs/export';
   }
 
   if (els.btnExport) els.btnExport.addEventListener('click', exportToExcel);

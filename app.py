@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import time
 from datetime import datetime
 from flask import Flask, g, jsonify, render_template, request, send_file
@@ -117,10 +118,10 @@ def row_to_dict(row) -> dict:
 
 def room_sort_key(x):
     room_raw = x.get("room", "")
-    try:
-        return (0, int(str(room_raw).strip()))
-    except ValueError:
-        return (1, str(room_raw).strip())
+    match = re.search(r'\d+', str(room_raw))
+    if match:
+        return (0, int(match.group()), str(room_raw).strip())
+    return (1, 0, str(room_raw).strip())
 
 @app.route("/")
 def index():
@@ -141,6 +142,12 @@ def list_tvs():
     
     return jsonify(items)
 
+def get_base_room(room_raw):
+    match = re.search(r'\d+', str(room_raw))
+    if match:
+        return int(match.group())
+    return 0
+
 # --- RUTA DE EXPORTACIÓN A EXCEL ESTÁNDAR ---
 @app.route("/api/tvs/export", methods=["GET"])
 def export_excel():
@@ -154,10 +161,9 @@ def export_excel():
         items = [row_to_dict(r) for r in rows]
 
         def get_tower(room_raw):
-            room = str(room_raw).strip().upper()
-            if not room.isdigit():
+            n = get_base_room(room_raw)
+            if n == 0:
                 return "Hotel"
-            n = int(room)
             if 6051 <= n <= 6069 or 6151 <= n <= 6170:
                 return "Suite"
             if 100 <= n < 1200:
@@ -218,10 +224,9 @@ def export_excel():
 
             for row_idx, item in enumerate(data_list, start=2):
                 room_raw = item.get("room", "")
-                room_val = int(room_raw) if str(room_raw).isdigit() else room_raw
 
                 row_data = [
-                    room_val,
+                    room_raw,
                     item.get("ubicacion", ""),
                     item.get("marca", ""),
                     item.get("modelo", ""),

@@ -11,7 +11,7 @@
     instal: $('fInstal'),
     modelo: $('fModelo'),
     serial: $('fSerial'),
-    comentarios: $('fComentarios'), // Campo de comentarios
+    comentarios: $('fComentarios'),
     btnAdd: $('btnAdd'),
     btnCancelEdit: $('btnCancelEdit'),
     qrPhoto: $('fQrPhoto'),
@@ -185,7 +185,7 @@
   if (els.btnOpenCamera) els.btnOpenCamera.addEventListener('click', openCamera);
   if (els.btnCloseCamera) els.btnCloseCamera.addEventListener('click', stopCamera);
 
-  // ---------- Decodificación de archivos de imagen subidos (Fallback) ----------
+  // ---------- Decodificación de archivos de imagen subidos ----------
   if (els.qrPhoto) {
     els.qrPhoto.addEventListener('change', async () => {
       const file = els.qrPhoto.files && els.qrPhoto.files[0];
@@ -270,7 +270,7 @@
     }
     if (els.modelo) els.modelo.value = '';
     if (els.serial) els.serial.value = '';
-    if (els.comentarios) els.comentarios.value = ''; // Limpiar comentarios
+    if (els.comentarios) els.comentarios.value = '';
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -300,9 +300,13 @@
   const TOWER_ORDER = ['Hotel', 'Suite', 'Otro'];
 
   function getTowerFloor(roomRaw) {
-    const room = String(roomRaw).trim().toUpperCase();
-    const n = parseInt(room, 10);
-    if (isNaN(n) || !/^\d+$/.test(room)) return { tower: 'Otro', floor: 'Otro' };
+    const rawStr = String(roomRaw || '').trim();
+    const match = rawStr.match(/\d+/);
+    if (!match) return { tower: 'Otro', floor: 'Otro' };
+    
+    const n = parseInt(match[0], 10);
+    if (isNaN(n)) return { tower: 'Otro', floor: 'Otro' };
+    
     if (n >= 6051 && n <= 6069) return { tower: 'Suite', floor: 'Mezz 1' };
     if (n >= 6151 && n <= 6170) return { tower: 'Suite', floor: 'Mezz 2' };
     if (n >= 100 && n < 1200) {
@@ -626,7 +630,7 @@
     if (els.instal) els.instal.value = e.instalacion || 'Base fija';
     if (els.modelo) els.modelo.value = e.modelo || '';
     if (els.serial) els.serial.value = e.serial || '';
-    if (els.comentarios) els.comentarios.value = e.comentarios || ''; // Cargar comentarios
+    if (els.comentarios) els.comentarios.value = e.comentarios || '';
     if (els.qrPhoto) els.qrPhoto.value = '';
     if (els.qrPhotoStatus) {
       els.qrPhotoStatus.classList.remove('show', 'warn');
@@ -702,7 +706,7 @@
       conexion: els.conexion ? els.conexion.value : '',
       perifericos: perifValue === 'si' ? 'Sí' : (perifValue === 'no' ? 'No' : ''),
       intergo: intergoValue === 'si' ? 'Sí' : (intergoValue === 'no' ? 'No' : ''),
-      comentarios: els.comentarios ? els.comentarios.value.trim() : '', // Enviar comentarios
+      comentarios: els.comentarios ? els.comentarios.value.trim() : '',
       modelo: els.modelo.value.trim(),
       serial: els.serial.value.trim()
     };
@@ -745,14 +749,13 @@
     btnAnother.addEventListener('click', () => addOrUpdateEntry(true));
   }
 
-  // ---------- Exportación a Excel vía Servidor Directo ----------
+  // ---------- Exportación a Excel ----------
   function exportToExcel() {
     if (!state.entries.length) {
       showToast('Todavía no hay registros para exportar.');
       return;
     }
     showToast('Generando y descargando Excel...');
-    // Redirige directamente al endpoint del servidor Flask para descargar el archivo
     window.location.href = '/api/tvs/export';
   }
 
