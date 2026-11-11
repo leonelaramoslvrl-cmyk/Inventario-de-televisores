@@ -113,7 +113,6 @@ def format_datetime(ts):
 def row_to_dict(row) -> dict:
     d = dict(row)
     d["id"] = str(d["id"])
-    # Recupera la fecha sin importar cómo esté guardada en la base de datos
     d["createdAt"] = d.get("createdat") or d.get("CREATEDAT") or d.get("createdAt") or 0
     return d
 
@@ -138,7 +137,6 @@ def list_tvs():
     cursor.close()
     
     items = [row_to_dict(r) for r in rows]
-    # Ordenamiento ascendente de menor a mayor habitación
     items.sort(key=room_sort_key)
     
     return jsonify(items)
