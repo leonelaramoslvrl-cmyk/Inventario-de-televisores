@@ -61,19 +61,8 @@ def get_sheets_service():
 
 
 def build_notas_text(tv_data: dict) -> str:
-    """Agrupa los detalles adicionales en la columna Notas del Google Sheet."""
-    partes = []
-    if tv_data.get("ubicacion"):
-        partes.append(f"Ubicación: {tv_data['ubicacion']}")
-    if tv_data.get("conexion"):
-        partes.append(f"Conexión: {tv_data['conexion']}")
-    if tv_data.get("perifericos"):
-        partes.append(f"Periféricos: {tv_data['perifericos']}")
-    if tv_data.get("instalacion"):
-        partes.append(f"Instalación: {tv_data['instalacion']}")
-    if tv_data.get("comentarios"):
-        partes.append(tv_data["comentarios"])
-    return " | ".join(partes)
+    """Devuelve únicamente el contenido de comentarios adicionales para la columna Notas."""
+    return (tv_data.get("comentarios") or "").strip()
 
 
 def find_target_row(rows: list, tv_data: dict):
