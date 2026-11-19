@@ -29,6 +29,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 # Configuración de Google Sheets
 SPREADSHEET_ID = "1fb3grPyS3WA6hmhWRSsvX4SUKmTkY-YfSMiASK6-Jf0"
 SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, "credentials.json")
+RENDER_SECRET_FILE = "/etc/secrets/credentials.json"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 TARGET_SHEETS = [
@@ -45,11 +46,13 @@ app = Flask(__name__)
 
 
 def get_sheets_service():
-    """Autentica con la cuenta de servicio (soporta archivo local o variable de entorno en Render)."""
+    """Autentica con la cuenta de servicio desde variable de entorno, /etc/secrets (Render) o ruta local."""
     creds_json_env = os.environ.get("GOOGLE_CREDENTIALS_JSON")
     if creds_json_env:
         info = json.loads(creds_json_env)
         creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+    elif os.path.exists(RENDER_SECRET_FILE):
+        creds = service_account.Credentials.from_service_account_file(RENDER_SECRET_FILE, scopes=SCOPES)
     elif os.path.exists(SERVICE_ACCOUNT_FILE):
         creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     else:
@@ -73,6 +76,40 @@ def build_notas_text(tv_data: dict) -> str:
     return " | ".join(partes)
 
 
+def find_target_row(rows: list, tv_data: dict):
+    """Encuentra el índice de fila (1-based) correspondiente al TV dentro de una pestaña."""
+    room_target = str(tv_data.get("room", "")).strip()
+    if not room_target:
+        return None
+
+    match_num = re.search(r"\d+", room_target)
+    room_num_str = match_num.group() if match_num else room_target
+
+    is_tv2 = bool(re.search(r"(sala|tv\s*2|-2|\(2\))", f"{room_target} {tv_data.get('ubicacion', '')}", re.IGNORECASE))
+    target_tv_index = "2" if is_tv2 else "1"
+    serial = str(tv_data.get("serial", "")).strip()
+
+    candidate_row_idx = None
+    fallback_row_idx = None
+
+    for idx, row in enumerate(rows, start=2):
+        hab_cell = str(row[2]).strip() if len(row) > 2 else ""
+        tv_cell = str(row[3]).strip() if len(row) > 3 else "1"
+        serial_cell = str(row[6]).strip() if len(row) > 6 else ""
+
+        if hab_cell == room_num_str:
+            if fallback_row_idx is None:
+                fallback_row_idx = idx
+            if serial and serial_cell == serial:
+                candidate_row_idx = idx
+                break
+            if tv_cell == target_tv_index:
+                candidate_row_idx = idx
+                break
+
+    return candidate_row_idx or fallback_row_idx
+
+
 def sync_tv_to_google_sheet(tv_data: dict) -> bool:
     """Busca la habitación en las pestañas C1..C7 y rellena Modelo, Serial, Intergo y Notas."""
     service = get_sheets_service()
@@ -80,17 +117,8 @@ def sync_tv_to_google_sheet(tv_data: dict) -> bool:
         print("Advertencia: No se encontraron credenciales de Google (credentials.json).")
         return False
 
-    room_target = str(tv_data.get("room", "")).strip()
-    if not room_target:
+    if not str(tv_data.get("room", "")).strip():
         return False
-
-    # Extraer número base de habitación (ej. "120-2" o "120 Sala" -> "120")
-    match_num = re.search(r"\d+", room_target)
-    room_num_str = match_num.group() if match_num else room_target
-
-    # Detectar si es el TV 2 (por texto "sala", "tv 2", "-2", etc.)
-    is_tv2 = bool(re.search(r"(sala|tv\s*2|-2|\(2\))", f"{room_target} {tv_data.get('ubicacion', '')}", re.IGNORECASE))
-    target_tv_index = "2" if is_tv2 else "1"
 
     modelo = tv_data.get("modelo", "")
     serial = tv_data.get("serial", "")
@@ -100,32 +128,11 @@ def sync_tv_to_google_sheet(tv_data: dict) -> bool:
     sheet_api = service.spreadsheets()
 
     for sheet_name in TARGET_SHEETS:
-        range_read = f"'{sheet_name}'!A2:I120"
+        range_read = f"'{sheet_name}'!A2:I150"
         result = sheet_api.values().get(spreadsheetId=SPREADSHEET_ID, range=range_read).execute()
         rows = result.get("values", [])
 
-        candidate_row_idx = None
-        fallback_row_idx = None
-
-        for idx, row in enumerate(rows, start=2):
-            hab_cell = str(row[2]).strip() if len(row) > 2 else ""
-            tv_cell = str(row[3]).strip() if len(row) > 3 else "1"
-            serial_cell = str(row[6]).strip() if len(row) > 6 else ""
-
-            if hab_cell == room_num_str:
-                if fallback_row_idx is None:
-                    fallback_row_idx = idx
-                # Si ya tiene ese mismo serial guardado, actualizamos esa fila exacta
-                if serial and serial_cell == serial:
-                    candidate_row_idx = idx
-                    break
-                # Coincidencia por número de TV (1 o 2)
-                if tv_cell == target_tv_index:
-                    candidate_row_idx = idx
-                    break
-
-        row_to_update = candidate_row_idx or fallback_row_idx
-
+        row_to_update = find_target_row(rows, tv_data)
         if row_to_update:
             update_range = f"'{sheet_name}'!F{row_to_update}:I{row_to_update}"
             body = {"values": [[modelo, serial, intergo, notas]]}
@@ -274,10 +281,16 @@ def get_base_room(room_raw):
     return 0
 
 
-# --- RUTA PARA SINCRONIZAR TODOS LOS REGISTROS EXISTENTES CON GOOGLE SHEETS ---
+# --- RUTA PARA SINCRONIZAR TODOS LOS REGISTROS EXISTENTES CON GOOGLE SHEETS EN BLOQUE ---
 @app.route("/api/tvs/sync-sheets", methods=["POST"])
 def sync_all_to_sheets():
     try:
+        service = get_sheets_service()
+        if not service:
+            return jsonify({
+                "error": "No se encontraron credenciales de Google en Render (/etc/secrets/credentials.json ni GOOGLE_CREDENTIALS_JSON)."
+            }), 500
+
         db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT * FROM tv_inventario")
@@ -285,14 +298,47 @@ def sync_all_to_sheets():
         cursor.close()
 
         items = [row_to_dict(r) for r in rows]
+        sheet_api = service.spreadsheets()
+
+        # Leer todas las pestañas C1..C7 una sola vez
+        sheets_data = {}
+        for sheet_name in TARGET_SHEETS:
+            range_read = f"'{sheet_name}'!A2:I150"
+            result = sheet_api.values().get(spreadsheetId=SPREADSHEET_ID, range=range_read).execute()
+            sheets_data[sheet_name] = result.get("values", [])
+
+        batch_updates = []
         synced = 0
         not_found = []
 
         for item in items:
-            if sync_tv_to_google_sheet(item):
-                synced += 1
-            else:
+            matched = False
+            for sheet_name in TARGET_SHEETS:
+                row_to_update = find_target_row(sheets_data[sheet_name], item)
+                if row_to_update:
+                    batch_updates.append({
+                        "range": f"'{sheet_name}'!F{row_to_update}:I{row_to_update}",
+                        "values": [[
+                            item.get("modelo", ""),
+                            item.get("serial", ""),
+                            item.get("intergo", ""),
+                            build_notas_text(item),
+                        ]],
+                    })
+                    synced += 1
+                    matched = True
+                    break
+            if not matched:
                 not_found.append(item.get("room"))
+
+        if batch_updates:
+            sheet_api.values().batchUpdate(
+                spreadsheetId=SPREADSHEET_ID,
+                body={
+                    "valueInputOption": "USER_ENTERED",
+                    "data": batch_updates,
+                },
+            ).execute()
 
         return jsonify({
             "message": f"Sincronizados {synced} de {len(items)} televisores.",
@@ -300,6 +346,7 @@ def sync_all_to_sheets():
             "no_encontrados_en_sheet": not_found,
         })
     except Exception as e:
+        print(f"Error en sync_all_to_sheets: {e}")
         return jsonify({"error": str(e)}), 500
 
 
