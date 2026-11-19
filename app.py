@@ -82,7 +82,7 @@ def extract_room_number(room_raw) -> str:
 
 
 def get_visited_sheet_info(sheet_api):
-    """Obtiene el sheetId, el nombre real y la cuadrícula de la pestaña 'habitaciones visitadas'."""
+    """Obtiene el sheetId, el nombre real y la cuadrícula completa (A1:Z200) de 'habitaciones visitadas'."""
     meta = sheet_api.get(spreadsheetId=SPREADSHEET_ID, fields="sheets.properties").execute()
     visited_sheet_id = None
     visited_sheet_title = None
@@ -90,17 +90,17 @@ def get_visited_sheet_info(sheet_api):
     for s in meta.get("sheets", []):
         props = s.get("properties", {})
         title = props.get("title", "")
-        if "visitadas" in title.lower():
+        if "visitadas" in title.strip().lower():
             visited_sheet_id = props.get("sheetId")
             visited_sheet_title = title
             break
 
     if visited_sheet_id is None:
-        return None, {}
+        return None, None, {}
 
     res = sheet_api.values().get(
         spreadsheetId=SPREADSHEET_ID,
-        range=f"'{visited_sheet_title}'!A1:Z100",
+        range=f"'{visited_sheet_title}'!A1:Z200",
     ).execute()
     grid_rows = res.get("values", [])
 
@@ -112,7 +112,7 @@ def get_visited_sheet_info(sheet_api):
             if val_clean.isdigit():
                 room_coords.setdefault(val_clean, []).append((r_idx, c_idx))
 
-    return visited_sheet_id, room_coords
+    return visited_sheet_id, visited_sheet_title, room_coords
 
 
 def build_green_cell_request(sheet_id: int, row_idx: int, col_idx: int) -> dict:
@@ -208,7 +208,7 @@ def sync_tv_to_google_sheet(tv_data: dict) -> bool:
 
     # Pintar de verde el cuadro de la habitación en la pestaña 'habitaciones visitadas'
     try:
-        visited_sheet_id, room_coords = get_visited_sheet_info(sheet_api)
+        visited_sheet_id, _, room_coords = get_visited_sheet_info(sheet_api)
         if visited_sheet_id is not None and room_num_str in room_coords:
             color_requests = [
                 build_green_cell_request(visited_sheet_id, r_idx, c_idx)
@@ -384,8 +384,8 @@ def sync_all_to_sheets():
             result = sheet_api.values().get(spreadsheetId=SPREADSHEET_ID, range=range_read).execute()
             sheets_data[sheet_name] = result.get("values", [])
 
-        # 2. Leer mapa de celdas de 'habitaciones visitadas'
-        visited_sheet_id, room_coords = get_visited_sheet_info(sheet_api)
+        # 2. Leer mapa de celdas de 'habitaciones visitadas' (rango completo A1:Z200)
+        visited_sheet_id, visited_sheet_title, room_coords = get_visited_sheet_info(sheet_api)
 
         batch_updates = []
         color_requests = []
@@ -439,6 +439,8 @@ def sync_all_to_sheets():
         return jsonify({
             "message": f"Sincronizados {synced} de {len(items)} televisores.",
             "synced": synced,
+            "pestana_visitadas": visited_sheet_title,
+            "habitaciones_detectadas_en_cuadricula": len(room_coords),
             "cuadros_pintados": len(painted_rooms),
             "no_encontrados_en_sheet": not_found,
         })
