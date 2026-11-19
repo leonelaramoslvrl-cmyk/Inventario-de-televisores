@@ -42,6 +42,13 @@ TARGET_SHEETS = [
     "C7 Intergo07@eurobuilding.com.v",
 ]
 
+# Color verde para marcar las habitaciones visitadas (RGB normalizado 0.0 a 1.0)
+VISITED_GREEN_COLOR = {
+    "red": 0.506,
+    "green": 0.780,
+    "blue": 0.518,
+}
+
 app = Flask(__name__)
 
 
@@ -65,14 +72,77 @@ def build_notas_text(tv_data: dict) -> str:
     return (tv_data.get("comentarios") or "").strip()
 
 
+def extract_room_number(room_raw) -> str:
+    """Extrae el número base de habitación (ej. '120-2' o '120 Sala' -> '120')."""
+    room_target = str(room_raw or "").strip()
+    if not room_target:
+        return ""
+    match_num = re.search(r"\d+", room_target)
+    return match_num.group() if match_num else room_target
+
+
+def get_visited_sheet_info(sheet_api):
+    """Obtiene el sheetId, el nombre real y la cuadrícula de la pestaña 'habitaciones visitadas'."""
+    meta = sheet_api.get(spreadsheetId=SPREADSHEET_ID, fields="sheets.properties").execute()
+    visited_sheet_id = None
+    visited_sheet_title = None
+
+    for s in meta.get("sheets", []):
+        props = s.get("properties", {})
+        title = props.get("title", "")
+        if "visitadas" in title.lower():
+            visited_sheet_id = props.get("sheetId")
+            visited_sheet_title = title
+            break
+
+    if visited_sheet_id is None:
+        return None, {}
+
+    res = sheet_api.values().get(
+        spreadsheetId=SPREADSHEET_ID,
+        range=f"'{visited_sheet_title}'!A1:Z100",
+    ).execute()
+    grid_rows = res.get("values", [])
+
+    # Mapear cada número de habitación -> lista de coordenadas (row_idx, col_idx) 0-based
+    room_coords = {}
+    for r_idx, row in enumerate(grid_rows):
+        for c_idx, cell_val in enumerate(row):
+            val_clean = str(cell_val or "").strip()
+            if val_clean.isdigit():
+                room_coords.setdefault(val_clean, []).append((r_idx, c_idx))
+
+    return visited_sheet_id, room_coords
+
+
+def build_green_cell_request(sheet_id: int, row_idx: int, col_idx: int) -> dict:
+    """Construye la petición de Google Sheets API para pintar de verde una celda específica."""
+    return {
+        "repeatCell": {
+            "range": {
+                "sheetId": sheet_id,
+                "startRowIndex": row_idx,
+                "endRowIndex": row_idx + 1,
+                "startColumnIndex": col_idx,
+                "endColumnIndex": col_idx + 1,
+            },
+            "cell": {
+                "userEnteredFormat": {
+                    "backgroundColor": VISITED_GREEN_COLOR
+                }
+            },
+            "fields": "userEnteredFormat.backgroundColor",
+        }
+    }
+
+
 def find_target_row(rows: list, tv_data: dict):
     """Encuentra el índice de fila (1-based) correspondiente al TV dentro de una pestaña."""
     room_target = str(tv_data.get("room", "")).strip()
     if not room_target:
         return None
 
-    match_num = re.search(r"\d+", room_target)
-    room_num_str = match_num.group() if match_num else room_target
+    room_num_str = extract_room_number(room_target)
 
     is_tv2 = bool(re.search(r"(sala|tv\s*2|-2|\(2\))", f"{room_target} {tv_data.get('ubicacion', '')}", re.IGNORECASE))
     target_tv_index = "2" if is_tv2 else "1"
@@ -100,13 +170,14 @@ def find_target_row(rows: list, tv_data: dict):
 
 
 def sync_tv_to_google_sheet(tv_data: dict) -> bool:
-    """Busca la habitación en las pestañas C1..C7 y rellena Modelo, Serial, Intergo y Notas."""
+    """Busca la habitación en C1..C7, rellena sus datos y pinta su cuadro en 'habitaciones visitadas'."""
     service = get_sheets_service()
     if not service:
         print("Advertencia: No se encontraron credenciales de Google (credentials.json).")
         return False
 
-    if not str(tv_data.get("room", "")).strip():
+    room_num_str = extract_room_number(tv_data.get("room", ""))
+    if not room_num_str:
         return False
 
     modelo = tv_data.get("modelo", "")
@@ -115,6 +186,7 @@ def sync_tv_to_google_sheet(tv_data: dict) -> bool:
     notas = build_notas_text(tv_data)
 
     sheet_api = service.spreadsheets()
+    updated_data = False
 
     for sheet_name in TARGET_SHEETS:
         range_read = f"'{sheet_name}'!A2:I150"
@@ -131,9 +203,25 @@ def sync_tv_to_google_sheet(tv_data: dict) -> bool:
                 valueInputOption="USER_ENTERED",
                 body=body,
             ).execute()
-            return True
+            updated_data = True
+            break
 
-    return False
+    # Pintar de verde el cuadro de la habitación en la pestaña 'habitaciones visitadas'
+    try:
+        visited_sheet_id, room_coords = get_visited_sheet_info(sheet_api)
+        if visited_sheet_id is not None and room_num_str in room_coords:
+            color_requests = [
+                build_green_cell_request(visited_sheet_id, r_idx, c_idx)
+                for (r_idx, c_idx) in room_coords[room_num_str]
+            ]
+            sheet_api.batchUpdate(
+                spreadsheetId=SPREADSHEET_ID,
+                body={"requests": color_requests},
+            ).execute()
+    except Exception as color_err:
+        print(f"Error al pintar cuadro en habitaciones visitadas: {color_err}")
+
+    return updated_data
 
 
 def get_db():
@@ -289,14 +377,19 @@ def sync_all_to_sheets():
         items = [row_to_dict(r) for r in rows]
         sheet_api = service.spreadsheets()
 
-        # Leer todas las pestañas C1..C7 una sola vez
+        # 1. Leer todas las pestañas C1..C7 una sola vez
         sheets_data = {}
         for sheet_name in TARGET_SHEETS:
             range_read = f"'{sheet_name}'!A2:I150"
             result = sheet_api.values().get(spreadsheetId=SPREADSHEET_ID, range=range_read).execute()
             sheets_data[sheet_name] = result.get("values", [])
 
+        # 2. Leer mapa de celdas de 'habitaciones visitadas'
+        visited_sheet_id, room_coords = get_visited_sheet_info(sheet_api)
+
         batch_updates = []
+        color_requests = []
+        painted_rooms = set()
         synced = 0
         not_found = []
 
@@ -317,6 +410,14 @@ def sync_all_to_sheets():
                     synced += 1
                     matched = True
                     break
+
+            # Agregar petición para pintar cuadro en 'habitaciones visitadas'
+            room_num_str = extract_room_number(item.get("room", ""))
+            if visited_sheet_id is not None and room_num_str in room_coords and room_num_str not in painted_rooms:
+                painted_rooms.add(room_num_str)
+                for (r_idx, c_idx) in room_coords[room_num_str]:
+                    color_requests.append(build_green_cell_request(visited_sheet_id, r_idx, c_idx))
+
             if not matched:
                 not_found.append(item.get("room"))
 
@@ -329,9 +430,16 @@ def sync_all_to_sheets():
                 },
             ).execute()
 
+        if color_requests:
+            sheet_api.batchUpdate(
+                spreadsheetId=SPREADSHEET_ID,
+                body={"requests": color_requests},
+            ).execute()
+
         return jsonify({
             "message": f"Sincronizados {synced} de {len(items)} televisores.",
             "synced": synced,
+            "cuadros_pintados": len(painted_rooms),
             "no_encontrados_en_sheet": not_found,
         })
     except Exception as e:
