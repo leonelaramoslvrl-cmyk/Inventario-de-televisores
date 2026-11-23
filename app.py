@@ -4,7 +4,7 @@ import os
 import re
 import time
 from datetime import datetime
-from flask import Flask, g, jsonify, render_template, request, send_file
+from flask import Flask, Response, g, jsonify, render_template, request, send_file
 
 try:
     import psycopg2
@@ -349,6 +349,43 @@ def list_tvs():
     items.sort(key=room_sort_key)
 
     return jsonify(items)
+
+
+# --- RUTA DE RESPALDO COMPLETO DE LA BASE DE DATOS EN JSON DESCARGABLE ---
+@app.route("/api/tvs/backup", methods=["GET"])
+def backup_database():
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM tv_inventario ORDER BY id ASC")
+        rows = cursor.fetchall()
+        cursor.close()
+
+        records = []
+        for r in rows:
+            item = dict(r)
+            item["createdat"] = item.get("createdat") or item.get("CREATEDAT") or item.get("createdAt") or 0
+            records.append(item)
+
+        backup_payload = {
+            "exported_at": datetime.now().isoformat(),
+            "total_records": len(records),
+            "table": "tv_inventario",
+            "records": records,
+        }
+
+        filename = f"respaldo_tvs_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.json"
+        json_bytes = json.dumps(backup_payload, ensure_ascii=False, indent=2).encode("utf-8")
+
+        return Response(
+            json_bytes,
+            mimetype="application/json",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            },
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 def get_base_room(room_raw):
